@@ -1,16 +1,10 @@
 import os
 import random
+import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple, Any
 from motor.motor_asyncio import AsyncIOMotorClient
 import google.generativeai as genai
-from dotenv import load_dotenv
-
-from backend.models import PyObjectId, ChatMessage, SymptomLog, Vital, ImageUpload, Alert
-
-# Load environment variables
-load_dotenv()
-
 from dotenv import load_dotenv
 
 from backend.models import PyObjectId, ChatMessage, SymptomLog, Vital, ImageUpload, Alert
@@ -27,70 +21,96 @@ genai.configure(api_key=GEMINI_API_KEY)
 # System instruction for the Gemini model
 SYSTEM_INSTRUCTION = (
     "You are MedAlert AI, an empathetic and helpful patient monitoring chatbot. "
-    "Your goal is to gather detailed information about the patient's symptoms and vitals. "
-    "Upon the patient's first message after the initial greeting, ask a targeted follow-up question to get more specific information about their well-being. "
-    "Ask open-ended questions. If symptoms like 'wound', 'rash', or 'swelling' are mentioned, "
-    "politely ask the patient to upload a photo. Provide basic, reassuring advice if appropriate, "
-    "but always prioritize gathering information. Do not provide medical diagnoses or treatment plans."
+    "Your primary goal is to gather detailed information about the patient's symptoms, well-being, and vitals. "
+    "Always ask targeted, open-ended follow-up questions to elicit more specific and comprehensive information about their health. "
+    "If the patient describes symptoms related to visible physical conditions such as 'wound', 'rash', 'burn', 'cut', 'bruise', 'swelling', 'skin discoloration', or 'lesion', "
+    "politely and clearly ask the patient to upload a photo of the affected area for a more accurate assessment. "
+    "Provide basic, reassuring, and general health advice if appropriate, but always prioritize gathering information and requesting images when relevant. "
+    "Crucially, you must never provide medical diagnoses, prescribe treatments, or offer specific medical advice. "
+    "Maintain a supportive, informative, and professional tone throughout the conversation. "
+    "After each patient message, consider if any new symptoms are mentioned and if an image is necessary for clarification."
 )
 
-# Initialize Gemini model with system instruction
+# Initialize Gemini models
 gemini_model = genai.GenerativeModel('gemini-pro', system_instruction=SYSTEM_INSTRUCTION)
+gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
 
-async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db: AsyncIOMotorClient) -> Tuple[str, bool, str]:
+async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db: AsyncIOMotorClient, image_path: Optional[str] = None) -> Tuple[str, bool, str]:
     """
-    Generates an AI chatbot response using Google Gemini model.
-    Also simulates prompting for an image based on keywords.
+    Generates an AI chatbot response using Google Gemini model, incorporating chat history and image analysis.
     Returns the AI response, whether an image is required, and an AI summary of the interaction.
     """
     requires_image = False
     ai_summary = ""
-    
-    # Check for keywords that might require an image
-    patient_message_lower = patient_message.lower()
-    if "wound" in patient_message_lower or "bandage" in patient_message_lower or "rash" in patient_message_lower or "swelling" in patient_message_lower:
-        requires_image = True
+    image_analysis_description = None
 
     try:
         # Fetch recent chat history for context
-        recent_chat_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1).limit(10) # Increased limit for more context
+        recent_chat_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1).limit(10)
         recent_chat_history_raw = [msg async for msg in recent_chat_cursor]
         
         # Format chat history for Gemini's start_chat
         conversation_history = []
         for chat_entry in recent_chat_history_raw:
-            if chat_entry['sender'] == "patient":
-                conversation_history.append({"role": "user", "parts": [chat_entry['message']]})
-            else: # Assuming 'model' for AI responses
-                conversation_history.append({"role": "model", "parts": [chat_entry['message']]})
+            # Ensure roles are correctly set for Gemini API
+            role = "user" if chat_entry['sender'] == "patient" else "model"
+            conversation_history.append({"role": role, "parts": [chat_entry['message']]})
         
+        # Prepare content for Gemini
+        content_parts = [patient_message]
+
+        # If an image is provided, analyze it first and add to content parts
+        if image_path:
+            image_analysis_result = await analyze_image_with_gemini_vision(image_path)
+            image_analysis_description = image_analysis_result['description']
+            content_parts.insert(0, f"Patient uploaded an image. Image analysis: {image_analysis_description}. ")
+            # Also add the image itself for vision model if needed, though for text-only model, description is enough
+            # For gemini-pro, we primarily use text, so the description is key.
+
         # Start a chat session with the history
         chat_session = gemini_model.start_chat(history=conversation_history)
         
-        # Send the latest patient message
-        response = await chat_session.send_message_async(patient_message)
+        # Send the latest patient message (and image analysis if present)
+        response = await chat_session.send_message_async(content_parts)
 
         ai_response_text = response.text
 
+        # Check if the AI's response or the patient's message indicates a need for an image
+        patient_message_lower = patient_message.lower()
+        ai_response_lower = ai_response_text.lower()
+        
+        keywords_for_image = ["wound", "rash", "burn", "cut", "bruise", "swelling", "skin discoloration", "lesion", "photo", "picture", "image"]
+        if any(keyword in patient_message_lower for keyword in keywords_for_image) or \
+           any(keyword in ai_response_lower for keyword in keywords_for_image):
+            requires_image = True
+            # Refine AI's request for image if it's a generic one
+            if "upload a photo" in ai_response_lower and not any(kw in ai_response_lower for kw in ["wound", "rash", "burn", "cut", "bruise", "swelling"]):
+                ai_response_text += " Please upload a photo of the affected area for a better assessment."
+
+
         # Generate a summary of the current interaction for the doctor
         full_interaction_text = f"Patient: {patient_message}\nAI: {ai_response_text}"
+        if image_analysis_description:
+            full_interaction_text += f"\nImage Analysis: {image_analysis_description}"
         ai_summary = await summarize_conversation_for_doctor(full_interaction_text)
         
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
         ai_response_text = "I'm sorry, I'm having trouble connecting to the AI at the moment. Please try again later."
-        requires_image = False # If AI fails, don't request image
+        requires_image = False
         ai_summary = f"AI summary unavailable due to error: {e}"
 
-    # Simulate logging symptom if a relevant keyword is found (can be enhanced with AI analysis)
-    if any(keyword in patient_message_lower for keyword in ["fever", "pain", "headache", "nausea", "tired", "dizzy", "cough", "rash", "swelling", "sore throat", "diarrhea", "constipation", "stress", "anxiety", "mood", "depressed", "wound"]):
-        symptom_log = SymptomLog(
-            patient_id=patient_id,
-            symptom_description=patient_message,
-            severity=random.randint(1, 10), # Mock severity, could be AI-determined
-            timestamp=datetime.utcnow()
-        )
-        await db.symptom_logs.insert_one(symptom_log.model_dump(by_alias=True, exclude=["id"]))
+    # Log symptoms based on AI's understanding or keywords
+    extracted_symptoms = await extract_symptoms_from_message(patient_message)
+    if extracted_symptoms:
+        for symptom_desc in extracted_symptoms:
+            symptom_log = SymptomLog(
+                patient_id=patient_id,
+                symptom_description=symptom_desc,
+                severity=random.randint(1, 10), # Mock severity, could be AI-determined or from a more advanced model
+                timestamp=datetime.utcnow()
+            )
+            await db.symptom_logs.insert_one(symptom_log.model_dump(by_alias=True, exclude=["id"]))
 
     return ai_response_text, requires_image, ai_summary
 
@@ -107,6 +127,23 @@ async def summarize_conversation_for_doctor(conversation_text: str) -> str:
         print(f"Error summarizing with Gemini API: {e}")
         summary = f"AI summary unavailable for interaction: '{conversation_text}'"
     return summary.strip()
+
+async def extract_symptoms_from_message(message: str) -> List[str]:
+    """
+    Uses Gemini to extract a list of symptoms from a patient's message.
+    """
+    try:
+        response = await gemini_model.generate_content_async(
+            f"From the following patient message, extract a comma-separated list of distinct symptoms mentioned. "
+            f"If no symptoms are clearly mentioned, respond with 'None'.\nMessage: \"{message}\""
+        )
+        symptoms_raw = response.text.strip()
+        if symptoms_raw.lower() == 'none' or not symptoms_raw:
+            return []
+        return [s.strip() for s in symptoms_raw.split(',') if s.strip()]
+    except Exception as e:
+        print(f"Error extracting symptoms with Gemini API: {e}")
+        return []
 
 async def analyze_vitals_for_risk(vitals: Vital) -> Optional[str]:
     """
@@ -203,3 +240,50 @@ async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient)
     max_possible_risk_factors = 5 # Arbitrary max for normalization
     risk_score = min(10.0, (risk_factors / max_possible_risk_factors) * 10)
     return round(risk_score, 2)
+
+async def analyze_image_with_gemini_vision(image_path: str) -> Dict[str, Any]:
+    """
+    Analyzes an image for wound assessment using Google Gemini Vision model.
+    """
+    try:
+        # Read the image file
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+
+        image_part = {
+            "mime_type": "image/jpeg",  # Assuming JPEG, adjust if other formats are supported
+            "data": image_data
+        }
+
+        prompt_parts = [
+            image_part,
+            "Analyze this image for any signs of wounds, rashes, burns, cuts, bruises, or swelling. "
+            "Provide a concise description of your findings, including location, type, and estimated severity (on a scale of 1-10 if applicable). "
+            "Also, suggest if a doctor's immediate review is recommended based on the visual evidence. "
+            "Format the response as a JSON object with keys: 'wound_detected' (boolean), 'severity_score' (int, 1-10, or null), 'description' (string), 'doctor_review_recommended' (boolean)."
+        ]
+
+        response = await gemini_vision_model.generate_content_async(prompt_parts)
+        
+        # Attempt to parse the response as JSON
+        try:
+            analysis_result = json.loads(response.text)
+        except json.JSONDecodeError:
+            print(f"Warning: Gemini Vision response was not valid JSON: {response.text}")
+            analysis_result = {
+                "wound_detected": False,
+                "severity_score": None,
+                "description": f"AI image analysis: Could not parse AI response. Raw response: {response.text}",
+                "doctor_review_recommended": False
+            }
+        
+        return analysis_result
+
+    except Exception as e:
+        print(f"Error analyzing image with Gemini Vision API: {e}")
+        return {
+            "wound_detected": False,
+            "severity_score": None,
+            "description": f"AI image analysis failed due to error: {e}",
+            "doctor_review_recommended": False
+        }

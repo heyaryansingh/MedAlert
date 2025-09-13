@@ -89,7 +89,7 @@ async def chatbot_message(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Receives a patient message, processes it with AI, and responds.
+    Receives a patient message (and optional image_url), processes it with AI, and responds.
     Also logs the conversation.
     """
     message.patient_id = patient_id
@@ -99,18 +99,42 @@ async def chatbot_message(
     # Log patient message
     await db.chat_messages.insert_one(message.model_dump(by_alias=True, exclude=["id"]))
 
-    # Get AI response, image requirement, and AI summary
-    ai_response_text, requires_image, ai_summary = await get_chatbot_response(message.message, patient_id, db)
+    try:
+        # Get AI response, image requirement, and AI summary
+        ai_response_text, requires_image, ai_summary = await get_chatbot_response(message.message, patient_id, db, message.image_url)
 
-    ai_message = ChatMessage(
-        patient_id=patient_id,
-        sender="ai",
-        message=ai_response_text,
-        ai_summary=ai_summary,
-        requires_image_upload=requires_image,
-        timestamp=datetime.utcnow()
-    )
-    await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
+        ai_message = ChatMessage(
+            patient_id=patient_id,
+            sender="ai",
+            message=ai_response_text,
+            ai_summary=ai_summary,
+            requires_image_upload=requires_image,
+            timestamp=datetime.utcnow(),
+            image_url=None # AI responses typically don't have images, but explicitly set to None
+        )
+        new_ai_msg = await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
+        created_ai_message = await db.chat_messages.find_one({"_id": new_ai_msg.inserted_id})
+        
+        if not created_ai_message:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve created AI message.")
+        
+        ai_message = ChatMessage(**created_ai_message)
+        print(f"AI Message successfully created and retrieved: {ai_message.model_dump_json()}")
+    except Exception as e:
+        print(f"Error in chatbot_message endpoint: {e}")
+        # Return a generic error message from AI if something goes wrong
+        ai_message = ChatMessage(
+            patient_id=patient_id,
+            sender="ai",
+            message="I'm sorry, I encountered an error while processing your request. Please try again.",
+            ai_summary=f"Error: {e}",
+            requires_image_upload=False,
+            timestamp=datetime.utcnow(),
+            image_url=None
+        )
+        # Attempt to save this error message to the chat history
+        await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
+        # Still return a 200 OK so frontend can display the error message
 
     # Update or create ConversationSummary for the patient
     existing_summary = await db.conversation_summaries.find_one({"patient_id": patient_id})
@@ -140,7 +164,17 @@ async def chatbot_message(
         )
         await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
 
-    return ai_message
+    return JSONResponse(
+        status_code=200,
+        content={
+            "_id": str(ai_message.id),
+            "sender": ai_message.sender,
+            "message": ai_message.message,
+            "timestamp": ai_message.timestamp.isoformat(),
+            "requires_image_upload": ai_message.requires_image_upload,
+            "image_url": ai_message.image_url # This will be None for AI messages, but included for consistency
+        }
+    )
 
 @router.get("/patient/get_alerts", response_model=List[Alert])
 async def get_alerts(
@@ -163,7 +197,12 @@ async def get_patient_chat_history(
     Returns the chat history for the current patient.
     """
     chat_messages_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
-    chat_messages = [ChatMessage(**m) async for m in chat_messages_cursor]
+    chat_messages = []
+    async for m in chat_messages_cursor:
+        # Ensure sender is "ai" for AI messages, even if old entries used "model"
+        if m.get('sender') == 'model':
+            m['sender'] = 'ai'
+        chat_messages.append(ChatMessage(**m))
     return chat_messages
 
 @router.post("/patient/generate_notes")

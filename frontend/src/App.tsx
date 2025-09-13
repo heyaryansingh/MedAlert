@@ -1,7 +1,7 @@
 import './App.css';
 import React, { useState } from 'react';
-import PatientChatbot from './components/PatientChatbot';
-import SimplifiedDoctorDashboard from './components/SimplifiedDoctorDashboard';
+import DoctorDashboard from './components/DoctorDashboard';
+import SimplifiedPatientDashboard from './components/SimplifiedPatientDashboard';
 
 function App() {
 
@@ -37,8 +37,8 @@ function App() {
         <button onClick={handleLogout}>Logout</button>
       </header>
       <div className="dashboards-container">
-        {userType === 'doctor' && <SimplifiedDoctorDashboard />}
-        {userType === 'patient' && <PatientChatbot />}
+        {userType === 'doctor' && <DoctorDashboard />}
+        {userType === 'patient' && <SimplifiedPatientDashboard />}
       </div>
     </div>
   );
