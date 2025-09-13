@@ -40,3 +40,83 @@
 .read-the-docs {
   color: #888;
 }
+
+.dashboards-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.doctor-dashboard, .patient-dashboard {
+  flex: 1;
+  min-width: 450px;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px; /* Add some space between stacked dashboards on smaller screens */
+}
+
+.patient-list-section ul, .chat-window {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.patient-list-section li {
+  cursor: pointer;
+  padding: 8px;
+  margin-bottom: 5px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.patient-list-section li.selected {
+  background-color: #e0e0e0;
+  font-weight: bold;
+}
+
+.chat-message {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+.chat-message.patient {
+  background-color: #dcf8c6;
+  text-align: right;
+}
+
+.chat-message.ai {
+  background-color: #e0e0e0;
+  text-align: left;
+}
+
+.chat-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.chat-input input[type="text"] {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.chat-input button {
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-input button:hover {
+  background-color: #0056b3;
+}

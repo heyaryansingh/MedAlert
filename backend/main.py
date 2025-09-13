@@ -24,9 +24,9 @@ app = FastAPI(
 )
 
 # Include routers
-app.include_router(auth.router, tags=["Authentication"], prefix="/api")
-app.include_router(patient.router, tags=["Patient"], prefix="/api")
-app.include_router(doctor.router, tags=["Doctor"], prefix="/api")
+app.include_router(auth.router, tags=["Authentication"], prefix="/api/auth")
+app.include_router(patient.router, tags=["Patient"], prefix="/api/patient")
+app.include_router(doctor.router, tags=["Doctor"], prefix="/api/doctor")
 
 # CORS middleware to allow frontend to connect
 app.add_middleware(

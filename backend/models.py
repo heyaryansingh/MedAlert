@@ -37,6 +37,7 @@ class Patient(User):
     contact_number: Optional[str] = None
     address: Optional[str] = None
     doctor_id: Optional[PyObjectId] = None # Doctor assigned to this patient
+    risk_score: Optional[float] = None # AI-generated risk score
 
 class Doctor(User):
     name: str

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from backend.models import Patient, Doctor, User
-from backend.main import get_database # Assuming get_database will be implemented in main.py
+from backend.main import get_database
 
 router = APIRouter()
 
@@ -70,11 +70,3 @@ async def doctor_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(g
         role="doctor",
         token=token
     )
-
-# Dependency to get the database client
-async def get_database():
-    """Dependency that provides the MongoDB database client."""
-    # This will be replaced with actual app.mongodb in main.py
-    # For now, it's a placeholder to avoid circular imports
-    from backend.main import database
-    return database

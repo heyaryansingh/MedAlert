@@ -168,7 +168,7 @@ const DoctorDashboard: React.FC = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/doctor/get_patients`);
+        const response = await fetch(`${API_BASE_URL}/get_patients`);
         if (response.ok) {
           const fetchedPatients = await response.json();
           setPatients(fetchedPatients);
@@ -182,7 +182,7 @@ const DoctorDashboard: React.FC = () => {
 
   const fetchPatientData = async (patientId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/get_patient_data/${patientId}`);
+      const response = await fetch(`${API_BASE_URL}/get_patient_data/${patientId}`);
       if (response.ok) {
         const data = await response.json();
         setPatientData(data);
@@ -201,7 +201,7 @@ const DoctorDashboard: React.FC = () => {
   const handleAddNote = async () => {
     if (!selectedPatient || newNote.trim() === '') return;
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/add_notes`, {
+      const response = await fetch(`${API_BASE_URL}/add_notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, note_content: newNote }),
@@ -220,7 +220,7 @@ const DoctorDashboard: React.FC = () => {
   const handlePrescribe = async () => {
     if (!selectedPatient || !newPrescription.medication_name) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/prescribe`, {
+      const response = await fetch(`${API_BASE_URL}/prescribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, ...newPrescription }),
@@ -245,7 +245,7 @@ const DoctorDashboard: React.FC = () => {
   const handleScheduleAppointment = async () => {
     if (!selectedPatient || !newAppointment.appointment_time) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/schedule_appointment`, {
+      const response = await fetch(`${API_BASE_URL}/schedule_appointment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, ...newAppointment }),
@@ -267,7 +267,7 @@ const DoctorDashboard: React.FC = () => {
   const handleAddComment = async (chatMessageId: string) => {
     if (!selectedPatient || !commentInput[chatMessageId]?.trim()) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/add_chat_comment`, {
+      const response = await fetch(`${API_BASE_URL}/add_chat_comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_message_id: chatMessageId, comment_content: commentInput[chatMessageId] }),
@@ -290,7 +290,7 @@ const DoctorDashboard: React.FC = () => {
   const handleTriggerAlert = async () => {
     if (!selectedPatient || !alertForm.message.trim()) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/doctor/trigger_alert`, {
+      const response = await fetch(`${API_BASE_URL}/trigger_alert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(alertForm),

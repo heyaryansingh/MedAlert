@@ -257,8 +257,3 @@ async def trigger_alert(
             )
         return Alert(**created_alert)
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to trigger alert")
-
-# Extend Patient model to include risk_score for doctor view
-# This is a temporary solution for the demo to display risk_score in the patient list
-# A more robust solution would involve a dedicated DTO or a computed property in the frontend
-Patient.model_fields['risk_score'] = Optional[float]
