@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a3e",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3b",
+    "timestamp": "2025-09-12T10:00:00.000Z",
+    "heart_rate": 72,
+    "blood_pressure_systolic": 120,
+    "blood_pressure_diastolic": 80,
+    "temperature": 36.8,
+    "oxygen_saturation": 98.5
+  },
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a3f",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3b",
+    "timestamp": "2025-09-12T18:00:00.000Z",
+    "heart_rate": 75,
+    "blood_pressure_systolic": 122,
+    "blood_pressure_diastolic": 81,
+    "temperature": 37.0,
+    "oxygen_saturation": 98.0
+  },
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a40",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3d",
+    "timestamp": "2025-09-12T11:00:00.000Z",
+    "heart_rate": 68,
+    "blood_pressure_systolic": 118,
+    "blood_pressure_diastolic": 78,
+    "temperature": 36.7,
+    "oxygen_saturation": 99.0
+  }
+]

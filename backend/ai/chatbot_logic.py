@@ -1,104 +1,116 @@
-from motor.motor_asyncio import AsyncIOMotorClient
-from backend.models import PyObjectId, ChatMessage, SymptomLog, Vital
-from datetime import datetime, timedelta
+import os
 import random
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Tuple, Any
+from motor.motor_asyncio import AsyncIOMotorClient
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db: AsyncIOMotorClient) -> (str, bool):
+from backend.models import PyObjectId, ChatMessage, SymptomLog, Vital, ImageUpload, Alert
+
+# Load environment variables
+load_dotenv()
+
+from dotenv import load_dotenv
+
+from backend.models import PyObjectId, ChatMessage, SymptomLog, Vital, ImageUpload, Alert
+
+# Load environment variables
+load_dotenv()
+
+# Configure Gemini API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable not set.")
+genai.configure(api_key=GEMINI_API_KEY)
+
+# System instruction for the Gemini model
+SYSTEM_INSTRUCTION = (
+    "You are MedAlert AI, an empathetic and helpful patient monitoring chatbot. "
+    "Your goal is to gather detailed information about the patient's symptoms and vitals. "
+    "Ask open-ended questions. If symptoms like 'wound', 'rash', or 'swelling' are mentioned, "
+    "politely ask the patient to upload a photo. Provide basic, reassuring advice if appropriate, "
+    "but always prioritize gathering information. Do not provide medical diagnoses or treatment plans."
+)
+
+# Initialize Gemini model with system instruction
+gemini_model = genai.GenerativeModel('gemini-pro', system_instruction=SYSTEM_INSTRUCTION)
+
+async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db: AsyncIOMotorClient) -> Tuple[str, bool, str]:
     """
-    Mocks an AI chatbot response.
-    In a real scenario, this would interact with GPT/OpenAI API.
-    It also simulates prompting for an image based on keywords.
+    Generates an AI chatbot response using Google Gemini model.
+    Also simulates prompting for an image based on keywords.
+    Returns the AI response, whether an image is required, and an AI summary of the interaction.
     """
-    patient_message_lower = patient_message.lower()
-    response_text = "Thank you for your update. Is there anything else you'd like to share?"
     requires_image = False
+    ai_summary = ""
+    
+    # Check for keywords that might require an image
+    patient_message_lower = patient_message.lower()
+    if "wound" in patient_message_lower or "bandage" in patient_message_lower or "rash" in patient_message_lower or "swelling" in patient_message_lower:
+        requires_image = True
 
-    if "wound" in patient_message_lower or "bandage" in patient_message_lower or "cut" in patient_message_lower:
-        response_text = "I understand you're concerned about a wound. Could you please upload a photo of it so the doctor can assess it?"
-        requires_image = True
-    elif "fever" in patient_message_lower or "temperature" in patient_message_lower:
-        response_text = "Please log your temperature in the vitals section. How high is your fever?"
-    elif "pain" in patient_message_lower:
-        response_text = "Where is the pain located and on a scale of 1 to 10, how severe is it?"
-    elif "headache" in patient_message_lower:
-        response_text = "How severe is your headache on a scale of 1 to 10? Have you taken any medication?"
-    elif "nausea" in patient_message_lower or "vomiting" in patient_message_lower:
-        response_text = "Are you experiencing any other symptoms with the nausea/vomiting?"
-    elif "blood pressure" in patient_message_lower or "bp" in patient_message_lower:
-        response_text = "Please log your blood pressure readings in the vitals section."
-    elif "heart rate" in patient_message_lower or "hr" in patient_message_lower:
-        response_text = "Please log your heart rate in the vitals section."
-    elif "tired" in patient_message_lower or "fatigue" in patient_message_lower:
-        response_text = "How long have you been feeling tired? Is it affecting your daily activities?"
-    elif "dizzy" in patient_message_lower:
-        response_text = "Are you experiencing dizziness when standing up or constantly? Have you had enough to drink today?"
-    elif "shortness of breath" in patient_message_lower or "breathing" in patient_message_lower:
-        response_text = "Are you experiencing shortness of breath at rest or only with exertion? Please log your oxygen saturation if you have a device."
-    elif "chest pain" in patient_message_lower:
-        response_text = "Please describe your chest pain. Is it sharp, dull, or crushing? Does it radiate anywhere?"
-    elif "rash" in patient_message_lower:
-        response_text = "Can you describe the rash? Is it itchy, red, or raised? Please upload an image if possible."
-        requires_image = True
-    elif "swelling" in patient_message_lower:
-        response_text = "Where is the swelling located? Is it painful or red? Please upload an image if possible."
-        requires_image = True
-    elif "cough" in patient_message_lower:
-        response_text = "Is your cough dry or productive? Are you experiencing any other cold or flu-like symptoms?"
-    elif "sore throat" in patient_message_lower:
-        response_text = "How severe is your sore throat? Is it difficult to swallow?"
-    elif "diarrhea" in patient_message_lower:
-        response_text = "How many times have you had diarrhea today? Are you experiencing any abdominal pain?"
-    elif "constipation" in patient_message_lower:
-        response_text = "How long have you been constipated? Have you tried any remedies?"
-    elif "sleep" in patient_message_lower or "insomnia" in patient_message_lower:
-        response_text = "How has your sleep been recently? Are you having trouble falling asleep or staying asleep?"
-    elif "stress" in patient_message_lower or "anxiety" in patient_message_lower:
-        response_text = "I understand you're feeling stressed or anxious. Would you like to talk more about what's on your mind?"
-    elif "mood" in patient_message_lower or "depressed" in patient_message_lower:
-        response_text = "How has your mood been lately? It's important to talk about these feelings."
-    elif "medication" in patient_message_lower or "prescription" in patient_message_lower:
-        response_text = "Are you having any issues with your medication or do you need a refill?"
-    elif "appointment" in patient_message_lower:
-        response_text = "Are you looking to schedule an appointment or do you have questions about an existing one?"
-    elif "hello" in patient_message_lower or "hi" in patient_message_lower:
-        response_text = "Hello! How are you feeling today? Please tell me about any symptoms or updates."
-    elif "thank you" in patient_message_lower or "thanks" in patient_message_lower:
-        response_text = "You're welcome! I'm here to help. Is there anything else I can assist you with?"
-    elif "goodbye" in patient_message_lower or "bye" in patient_message_lower:
-        response_text = "Goodbye! Take care and don't hesitate to reach out if you need anything."
-    else:
-        response_text = "I'm not sure I understand. Could you please rephrase or provide more details?"
+    try:
+        # Fetch recent chat history for context
+        recent_chat_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1).limit(10) # Increased limit for more context
+        recent_chat_history_raw = [msg async for msg in recent_chat_cursor]
+        
+        # Format chat history for Gemini's start_chat
+        conversation_history = []
+        for chat_entry in recent_chat_history_raw:
+            if chat_entry['sender'] == "patient":
+                conversation_history.append({"role": "user", "parts": [chat_entry['message']]})
+            else: # Assuming 'model' for AI responses
+                conversation_history.append({"role": "model", "parts": [chat_entry['message']]})
+        
+        # Start a chat session with the history
+        chat_session = gemini_model.start_chat(history=conversation_history)
+        
+        # Send the latest patient message
+        response = await chat_session.send_message_async(patient_message)
 
-    # Simulate logging symptom if a relevant keyword is found
-    if any(keyword in patient_message_lower for keyword in ["fever", "pain", "headache", "nausea", "tired", "dizzy", "cough", "rash", "swelling", "sore throat", "diarrhea", "constipation", "stress", "anxiety", "mood", "depressed"]):
+        ai_response_text = response.text
+
+        # Generate a summary of the current interaction for the doctor
+        full_interaction_text = f"Patient: {patient_message}\nAI: {ai_response_text}"
+        ai_summary = await summarize_conversation_for_doctor(full_interaction_text)
+        
+    except Exception as e:
+        print(f"Error calling Gemini API: {e}")
+        ai_response_text = "I'm sorry, I'm having trouble connecting to the AI at the moment. Please try again later."
+        requires_image = False # If AI fails, don't request image
+        ai_summary = f"AI summary unavailable due to error: {e}"
+
+    # Simulate logging symptom if a relevant keyword is found (can be enhanced with AI analysis)
+    if any(keyword in patient_message_lower for keyword in ["fever", "pain", "headache", "nausea", "tired", "dizzy", "cough", "rash", "swelling", "sore throat", "diarrhea", "constipation", "stress", "anxiety", "mood", "depressed", "wound"]):
         symptom_log = SymptomLog(
             patient_id=patient_id,
             symptom_description=patient_message,
-            severity=random.randint(1, 10), # Mock severity
+            severity=random.randint(1, 10), # Mock severity, could be AI-determined
             timestamp=datetime.utcnow()
         )
         await db.symptom_logs.insert_one(symptom_log.model_dump(by_alias=True, exclude=["id"]))
 
-    return response_text, requires_image
+    return ai_response_text, requires_image, ai_summary
 
-async def analyze_patient_message(patient_message: str) -> dict:
+async def summarize_conversation_for_doctor(conversation_text: str) -> str:
     """
-    Mocks AI analysis of a patient message for summarization.
-    In a real scenario, this would use GPT/OpenAI API.
+    Summarizes a given conversation text concisely for a doctor using Google Gemini model.
     """
-    # Simple keyword-based summary for demo
-    summary = f"Patient reported: '{patient_message}'. "
-    if "pain" in patient_message.lower():
-        summary += "Possible pain complaint. "
-    if "fever" in patient_message.lower():
-        summary += "Possible fever. "
-    if "wound" in patient_message.lower() or "bandage" in patient_message.lower():
-        summary += "Wound/bandage mentioned. "
-    return {"summary": summary.strip()}
+    try:
+        response = await gemini_model.generate_content_async(
+            f"Summarize the following patient-AI interaction concisely for a doctor, highlighting key symptoms, concerns, and AI actions: {conversation_text}"
+        )
+        summary = response.text
+    except Exception as e:
+        print(f"Error summarizing with Gemini API: {e}")
+        summary = f"AI summary unavailable for interaction: '{conversation_text}'"
+    return summary.strip()
 
 async def analyze_vitals_for_risk(vitals: Vital) -> Optional[str]:
     """
     Mocks AI analysis of vitals for risk assessment.
+    In a real scenario, this could use a more sophisticated rule-based system or ML model.
     """
     risk_message = None
     if vitals.heart_rate and (vitals.heart_rate > 100 or vitals.heart_rate < 60):
@@ -114,16 +126,28 @@ async def analyze_vitals_for_risk(vitals: Vital) -> Optional[str]:
         risk_message = "Low oxygen saturation detected."
     return risk_message
 
-async def analyze_image_for_wound(image_path: str) -> dict:
+async def analyze_image_for_wound(image_path: str) -> Dict[str, Any]:
     """
-    Mocks AI analysis of an image for wound assessment.
-    In a real scenario, this would use a pretrained CNN model.
+    Mocks AI analysis of an image for wound assessment using a pretrained CNN model.
+    In a real scenario, this would involve loading and running a PyTorch/TensorFlow model.
+    For the demo, it simulates a result.
     """
-    # Simulate some analysis
+    # Placeholder for actual CNN model inference
+    # Example:
+    # from PIL import Image
+    # import torch
+    # from torchvision import transforms
+    # model = load_pretrained_cnn_model()
+    # image = Image.open(image_path).convert('RGB')
+    # preprocess = transforms.Compose([...])
+    # input_tensor = preprocess(image)
+    # output = model(input_tensor)
+    # prediction = interpret_output(output)
+
     analysis_result = {
         "wound_detected": random.choice([True, False]),
         "severity_score": random.randint(1, 10),
-        "description": "Simulated AI analysis: "
+        "description": "Simulated AI image analysis: "
     }
     if analysis_result["wound_detected"]:
         analysis_result["description"] += f"Wound detected with severity {analysis_result['severity_score']}/10. "
@@ -137,8 +161,8 @@ async def analyze_image_for_wound(image_path: str) -> dict:
 
 async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient) -> float:
     """
-    Mocks calculation of a patient's overall risk score.
-    This would combine vitals, symptoms, and image analysis.
+    Calculates a patient's overall risk score based on vitals, symptoms, and image analysis.
+    Combines mock AI analysis results.
     """
     # Fetch recent vitals (e.g., last 24 hours)
     one_day_ago = datetime.utcnow() - timedelta(days=1)
@@ -167,7 +191,7 @@ async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient)
         if image.ai_analysis_summary and "wound detected" in image.ai_analysis_summary.lower() and "severity" in image.ai_analysis_summary.lower():
             # Extract severity from summary (mock parsing)
             try:
-                severity_str = image.ai_analysis_summary.split("severity ")[1].split("/")[0]
+                severity_str = image.ai_analysis_summary.split("severity ").split("/")
                 severity = int(severity_str)
                 risk_factors += 0.7 * (severity / 10)
             except (IndexError, ValueError):

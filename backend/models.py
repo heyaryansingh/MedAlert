@@ -10,7 +10,7 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v: Any) -> ObjectId:
+    def validate(cls, v: Any, info) -> ObjectId:
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
@@ -80,6 +80,22 @@ class ChatMessage(BaseModel):
     sender: str # "patient" or "ai"
     message: str
     image_url: Optional[str] = None # URL to uploaded image if any
+    ai_summary: Optional[str] = None # AI-generated summary of this specific message/turn
+    requires_image_upload: bool = False # True if AI requested an image
+    doctor_comment: Optional[str] = None # Doctor's comment on this specific message
+    alert_triggered: bool = False # True if this message/interaction triggered an alert
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class ConversationSummary(BaseModel):
+    id: Optional[PyObjectId] = Field(alias="_id")
+    patient_id: PyObjectId
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    summary_text: str
+    # Potentially add a sentiment score or risk level here
 
     class Config:
         populate_by_name = True
@@ -90,10 +106,12 @@ class Alert(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    alert_type: str # e.g., "high_risk_vitals", "wound_deterioration", "symptom_escalation"
+    alert_type: str # e.g., "high_risk_vitals", "wound_deterioration", "symptom_escalation", "doctor_review_needed"
     message: str
     severity: str # "low", "medium", "high", "critical"
     resolved: bool = False
+    doctor_id: Optional[PyObjectId] = None # Doctor who created/resolved the alert
+    chat_message_id: Optional[PyObjectId] = None # Link to specific chat message if applicable
 
     class Config:
         populate_by_name = True

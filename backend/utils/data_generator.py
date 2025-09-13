@@ -188,7 +188,11 @@ def generate_fake_appointments(patient_id: PyObjectId, doctor_id: PyObjectId, nu
 def generate_all_simulated_data(num_patients: int = 3, num_doctors: int = 1) -> Dict:
     """Generates a complete set of simulated data for the demo."""
     doctors = [generate_fake_doctor() for _ in range(num_doctors)]
-    patients = [generate_fake_patient(doctor_id=doctors.id) for _ in range(num_patients)] # Assign all patients to the first doctor for simplicity
+    
+    # Ensure there's at least one doctor to assign to patients
+    # Ensure there's at least one doctor to assign to patients
+    doctor_id_for_patients = doctors.id if doctors else None
+    patients = [generate_fake_patient(doctor_id=doctor_id_for_patients) for _ in range(num_patients)]
 
     all_data = {
         "doctors": [d.model_dump(by_alias=True) for d in doctors],

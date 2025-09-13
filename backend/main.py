@@ -11,7 +11,7 @@ load_dotenv()
 # Import models
 from backend.models import (
     Patient, Doctor, User, Vital, SymptomLog, ChatMessage, Alert,
-    DoctorNote, Prescription, Appointment, ImageUpload, PyObjectId
+    DoctorNote, Prescription, Appointment, ImageUpload, PyObjectId, ConversationSummary
 )
 from backend.routes import auth # Import the auth router
 from backend.routes import patient # Import the patient router
@@ -56,6 +56,7 @@ doctor_notes_collection = database.doctor_notes
 prescriptions_collection = database.prescriptions
 appointments_collection = database.appointments
 image_uploads_collection = database.image_uploads
+conversation_summaries_collection = database.conversation_summaries
 
 @app.on_event("startup")
 async def startup_db_client():

@@ -1,0 +1,24 @@
+[
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a3b",
+    "email": "patient1@example.com",
+    "password": "password123",
+    "role": "patient",
+    "name": "Alice Smith",
+    "date_of_birth": "1990-05-15",
+    "contact_number": "555-123-4567",
+    "address": "123 Main St, Anytown, USA",
+    "doctor_id": "650d7f3e7b1f8c9d0e1f2a3c"
+  },
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a3d",
+    "email": "patient2@example.com",
+    "password": "password123",
+    "role": "patient",
+    "name": "Bob Johnson",
+    "date_of_birth": "1985-11-20",
+    "contact_number": "555-987-6543",
+    "address": "456 Oak Ave, Otherville, USA",
+    "doctor_id": "650d7f3e7b1f8c9d0e1f2a3c"
+  }
+]

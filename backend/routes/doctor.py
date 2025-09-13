@@ -5,10 +5,10 @@ from datetime import datetime
 
 from backend.models import (
     Patient, Vital, SymptomLog, ChatMessage, Alert, DoctorNote,
-    Prescription, Appointment, ImageUpload, PyObjectId
+    Prescription, Appointment, ImageUpload, PyObjectId, ConversationSummary
 )
 from backend.main import get_database # Assuming get_database is implemented in main.py
-from backend.ai.chatbot_logic import analyze_vitals_for_risk, analyze_image_for_wound, get_patient_risk_score, analyze_patient_message # Import AI functions
+from backend.ai.chatbot_logic import analyze_vitals_for_risk, analyze_image_for_wound, get_patient_risk_score # Import AI functions
 
 router = APIRouter()
 
@@ -83,12 +83,9 @@ async def get_patient_data(
     # AI-generated summaries and risk score
     risk_score = await get_patient_risk_score(patient_obj_id, db)
     symptom_summary = "No recent symptoms."
-    if symptom_logs:
-        # Mock a more detailed summary from AI
-        all_symptoms_text = " ".join([s.symptom_description for s in symptom_logs])
-        ai_summary = await analyze_patient_message(all_symptoms_text)
-        symptom_summary = ai_summary.get("summary", "AI summary unavailable.")
-
+    # Fetch conversation summary
+    conversation_summary = await db.conversation_summaries.find_one({"patient_id": patient_obj_id})
+    
     return {
         "patient_profile": Patient(**patient),
         "vitals": vitals,
@@ -100,7 +97,7 @@ async def get_patient_data(
         "appointments": appointments,
         "image_uploads": image_uploads,
         "risk_score": risk_score,
-        "ai_symptom_summary": symptom_summary
+        "conversation_summary": ConversationSummary(**conversation_summary) if conversation_summary else None
     }
 
 class AddNoteRequest(BaseModel):
@@ -194,6 +191,72 @@ async def schedule_appointment(
     if created_appointment:
         return Appointment(**created_appointment)
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to schedule appointment")
+
+class DoctorCommentRequest(BaseModel):
+    chat_message_id: str
+    comment_content: str
+
+@router.post("/doctor/add_chat_comment", response_model=ChatMessage)
+async def add_chat_comment(
+    request: DoctorCommentRequest,
+    doctor_id: PyObjectId = Depends(get_current_doctor_id),
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """
+    Allows a doctor to add a comment to a specific chat message.
+    """
+    chat_message_obj_id = PyObjectId(request.chat_message_id)
+    
+    updated_message = await db.chat_messages.find_one_and_update(
+        {"_id": chat_message_obj_id},
+        {"$set": {"doctor_comment": request.comment_content}},
+        return_document=True
+    )
+
+    if updated_message:
+        return ChatMessage(**updated_message)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat message not found")
+
+class TriggerAlertRequest(BaseModel):
+    patient_id: str
+    alert_type: str
+    message: str
+    severity: str
+    chat_message_id: Optional[str] = None
+
+@router.post("/doctor/trigger_alert", response_model=Alert)
+async def trigger_alert(
+    request: TriggerAlertRequest,
+    doctor_id: PyObjectId = Depends(get_current_doctor_id),
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """
+    Allows a doctor to manually trigger an alert for a patient.
+    """
+    patient_obj_id = PyObjectId(request.patient_id)
+    
+    alert = Alert(
+        patient_id=patient_obj_id,
+        alert_type=request.alert_type,
+        message=request.message,
+        severity=request.severity,
+        resolved=False,
+        timestamp=datetime.utcnow(),
+        doctor_id=doctor_id,
+        chat_message_id=PyObjectId(request.chat_message_id) if request.chat_message_id else None
+    )
+    new_alert = await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
+    created_alert = await db.alerts.find_one({"_id": new_alert.inserted_id})
+
+    if created_alert:
+        # Optionally, update the linked chat message to mark that an alert was triggered
+        if request.chat_message_id:
+            await db.chat_messages.update_one(
+                {"_id": PyObjectId(request.chat_message_id)},
+                {"$set": {"alert_triggered": True}}
+            )
+        return Alert(**created_alert)
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to trigger alert")
 
 # Extend Patient model to include risk_score for doctor view
 # This is a temporary solution for the demo to display risk_score in the patient list

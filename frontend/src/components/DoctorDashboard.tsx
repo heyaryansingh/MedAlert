@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 
+// --- Interfaces (matching backend models) ---
 interface Patient {
   _id: string;
   name: string;
   email: string;
   risk_score?: number;
-  date_of_birth?: string; // Added missing property
-  contact_number?: string; // Added missing property
-  address?: string; // Added missing property
+  date_of_birth?: string;
+  contact_number?: string;
+  address?: string;
 }
 
 interface Vital {
+  _id?: string;
+  patient_id: string;
   timestamp: string;
   heart_rate?: number;
   blood_pressure_systolic?: number;
@@ -21,27 +24,47 @@ interface Vital {
 }
 
 interface SymptomLog {
+  _id?: string;
+  patient_id: string;
   timestamp: string;
   symptom_description: string;
   severity?: number;
 }
 
 interface ChatMessage {
+  _id?: string;
+  patient_id: string;
+  timestamp: string;
   sender: 'patient' | 'ai';
   message: string;
-  timestamp: string;
   image_url?: string;
+  ai_summary?: string;
+  requires_image_upload?: boolean;
+  doctor_comment?: string;
+  alert_triggered?: boolean;
+}
+
+interface ConversationSummary {
+  _id?: string;
+  patient_id: string;
+  last_updated: string;
+  summary_text: string;
 }
 
 interface Alert {
+  _id?: string;
+  patient_id: string;
+  timestamp: string;
   alert_type: string;
   message: string;
   severity: string;
-  timestamp: string;
+  resolved: boolean;
+  doctor_id?: string;
+  chat_message_id?: string;
 }
 
 interface DoctorNote {
-  _id: string;
+  _id?: string;
   patient_id: string;
   doctor_id: string;
   timestamp: string;
@@ -49,7 +72,7 @@ interface DoctorNote {
 }
 
 interface Prescription {
-  _id: string;
+  _id?: string;
   patient_id: string;
   doctor_id: string;
   timestamp: string;
@@ -61,7 +84,7 @@ interface Prescription {
 }
 
 interface Appointment {
-  _id: string;
+  _id?: string;
   patient_id: string;
   doctor_id: string;
   timestamp: string;
@@ -71,7 +94,7 @@ interface Appointment {
 }
 
 interface ImageUpload {
-  _id: string;
+  _id?: string;
   patient_id: string;
   timestamp: string;
   image_url: string;
@@ -90,9 +113,10 @@ interface PatientDetailData {
   appointments: Appointment[];
   image_uploads: ImageUpload[];
   risk_score: number;
-  ai_symptom_summary: string;
+  conversation_summary: ConversationSummary | null;
 }
 
+// --- Form Interfaces ---
 interface NewPrescriptionForm {
   medication_name: string;
   dosage: string;
@@ -104,6 +128,14 @@ interface NewPrescriptionForm {
 interface NewAppointmentForm {
   appointment_time: string;
   reason: string;
+}
+
+interface NewAlertForm {
+  patient_id: string;
+  alert_type: string;
+  message: string;
+  severity: string;
+  chat_message_id?: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -124,9 +156,14 @@ const DoctorDashboard: React.FC = () => {
     appointment_time: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:MM
     reason: '',
   });
-
-  // Mock doctor ID for demo purposes
-  // const doctorId = '650d7f3e7b1f8c9d0e1f2a3c'; // This variable is not used in the current implementation but kept for future use.
+  const [commentInput, setCommentInput] = useState<{ [key: string]: string }>({}); // For comments on chat messages
+  const [alertForm, setAlertForm] = useState<NewAlertForm>({
+    patient_id: '',
+    alert_type: 'doctor_review_needed',
+    message: '',
+    severity: 'medium',
+    chat_message_id: undefined,
+  });
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -149,6 +186,7 @@ const DoctorDashboard: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setPatientData(data);
+        setAlertForm(prev => ({ ...prev, patient_id: patientId })); // Set patient_id for alert form
       }
     } catch (error) {
       console.error('Error fetching patient data:', error);
@@ -226,9 +264,57 @@ const DoctorDashboard: React.FC = () => {
     }
   };
 
+  const handleAddComment = async (chatMessageId: string) => {
+    if (!selectedPatient || !commentInput[chatMessageId]?.trim()) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/doctor/add_chat_comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_message_id: chatMessageId, comment_content: commentInput[chatMessageId] }),
+      });
+      if (response.ok) {
+        setCommentInput(prev => {
+          const newState = { ...prev };
+          delete newState[chatMessageId];
+          return newState;
+        });
+        fetchPatientData(selectedPatient._id); // Refresh patient data
+      } else {
+        console.error('Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleTriggerAlert = async () => {
+    if (!selectedPatient || !alertForm.message.trim()) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/doctor/trigger_alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(alertForm),
+      });
+      if (response.ok) {
+        setAlertForm({
+          patient_id: selectedPatient._id,
+          alert_type: 'doctor_review_needed',
+          message: '',
+          severity: 'medium',
+          chat_message_id: undefined,
+        });
+        fetchPatientData(selectedPatient._id); // Refresh patient data
+      } else {
+        console.error('Failed to trigger alert');
+      }
+    } catch (error) {
+      console.error('Error triggering alert:', error);
+    }
+  };
+
   const renderVitalsChart = (vitalsData: Vital[], vitalKey: keyof Vital, title: string, unit: string) => {
     const dates = vitalsData.map(v => new Date(v.timestamp));
-    const values = vitalsData.map(v => v[vitalKey]).filter((v): v is number => v !== undefined && v !== null);
+    const values = vitalsData.map(v => v[vitalKey]).filter((v): v is number => typeof v === 'number');
 
     if (values.length === 0) return null;
 
@@ -237,16 +323,16 @@ const DoctorDashboard: React.FC = () => {
         data={[
           {
             x: dates,
-            y: values as number[], // Cast to number[] after filtering
+            y: values as Plotly.Datum[],
             type: 'scatter',
             mode: 'lines+markers',
             marker: { color: 'red' },
           },
         ]}
         layout={{
-          title: title,
-          xaxis: { title: 'Date' },
-          yaxis: { title: unit },
+          title: { text: title },
+          xaxis: { title: { text: 'Date' } },
+          yaxis: { title: { text: unit } },
           autosize: true,
         }}
         useResizeHandler={true}
@@ -278,7 +364,7 @@ const DoctorDashboard: React.FC = () => {
           <p><strong>Contact:</strong> {patientData.patient_profile.contact_number || 'N/A'}</p>
           <p><strong>Address:</strong> {patientData.patient_profile.address || 'N/A'}</p>
           <p><strong>Current AI Risk Score:</strong> {patientData.risk_score !== undefined ? patientData.risk_score : 'N/A'}</p>
-          <p><strong>AI Symptom Summary:</strong> {patientData.ai_symptom_summary}</p>
+          <p><strong>AI Conversation Summary:</strong> {patientData.conversation_summary?.summary_text || 'N/A'}</p>
 
           <h4>Vitals Trends</h4>
           {renderVitalsChart(patientData.vitals, 'heart_rate', 'Heart Rate (bpm)', 'BPM')}
@@ -305,11 +391,34 @@ const DoctorDashboard: React.FC = () => {
             <p>No chat history.</p>
           ) : (
             <div className="chat-window">
-              {patientData.chat_history.map((msg: ChatMessage, index: number) => (
-                <div key={index} className={`chat-message ${msg.sender}`}>
-                  <strong>{msg.sender === 'patient' ? 'Patient' : 'AI'}:</strong> {msg.message}
-                  {msg.image_url && <img src={msg.image_url} alt="Uploaded" style={{ maxWidth: '100px', display: 'block' }} />}
-                  <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+              {patientData.chat_history.map((msg: ChatMessage) => (
+                <div key={msg._id} className={`chat-message ${msg.sender}`}>
+                  <div className="message-content">
+                    <strong>{msg.sender === 'patient' ? 'Patient' : 'AI'}:</strong> {msg.message}
+                    <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                    {msg.image_url && <img src={msg.image_url} alt="Uploaded" style={{ maxWidth: '100px', display: 'block' }} />}
+                    {msg.requires_image_upload && <p className="image-request"><em>AI requested an image.</em></p>}
+                    {msg.alert_triggered && <p className="alert-triggered"><strong>Alert Triggered!</strong></p>}
+                  </div>
+                  {msg.ai_summary && <div className="ai-summary-box"><strong>AI Summary:</strong> {msg.ai_summary}</div>}
+                  {msg.doctor_comment && <div className="doctor-comment-box"><strong>Doctor Comment:</strong> {msg.doctor_comment}</div>}
+                  
+                  {/* Doctor actions for each message */}
+                  <div className="doctor-message-actions">
+                    <textarea
+                      placeholder="Add comment..."
+                      value={commentInput[msg._id || ''] || ''}
+                      onChange={(e) => setCommentInput({ ...commentInput, [msg._id || '']: e.target.value })}
+                      rows={2}
+                    />
+                    <button onClick={() => handleAddComment(msg._id || '')} disabled={!commentInput[msg._id || '']?.trim()}>Add Comment</button>
+                    <button
+                      onClick={() => setAlertForm(prev => ({ ...prev, chat_message_id: msg._id, message: `Alert related to chat message: "${msg.message}"` }))}
+                      className="trigger-alert-button"
+                    >
+                      Trigger Alert
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -320,8 +429,8 @@ const DoctorDashboard: React.FC = () => {
             <p>No image uploads.</p>
           ) : (
             <div className="image-gallery">
-              {patientData.image_uploads.map((image: ImageUpload, index: number) => (
-                <div key={index} className="image-item">
+              {patientData.image_uploads.map((image: ImageUpload) => (
+                <div key={image._id} className="image-item">
                   <img src={image.image_url} alt={image.description} style={{ maxWidth: '150px' }} />
                   <p>{image.description} ({new Date(image.timestamp).toLocaleDateString()})</p>
                   {image.ai_analysis_summary && <p><strong>AI Analysis:</strong> {image.ai_analysis_summary}</p>}
@@ -341,8 +450,8 @@ const DoctorDashboard: React.FC = () => {
             <p>No doctor notes.</p>
           ) : (
             <ul>
-              {patientData.doctor_notes.map((note: DoctorNote, index: number) => (
-                <li key={index}>
+              {patientData.doctor_notes.map((note: DoctorNote) => (
+                <li key={note._id}>
                   {new Date(note.timestamp).toLocaleString()}: {note.note_content}
                 </li>
               ))}
@@ -364,8 +473,8 @@ const DoctorDashboard: React.FC = () => {
             <p>No prescriptions.</p>
           ) : (
             <ul>
-              {patientData.prescriptions.map((p: Prescription, index: number) => (
-                <li key={index}>
+              {patientData.prescriptions.map((p: Prescription) => (
+                <li key={p._id}>
                   <strong>{p.medication_name}</strong> - {p.dosage} ({new Date(p.start_date).toLocaleDateString()} to {new Date(p.end_date).toLocaleDateString()})
                   <p>Instructions: {p.instructions}</p>
                 </li>
@@ -384,13 +493,38 @@ const DoctorDashboard: React.FC = () => {
             <p>No appointments.</p>
           ) : (
             <ul>
-              {patientData.appointments.map((a: Appointment, index: number) => (
-                <li key={index}>
+              {patientData.appointments.map((a: Appointment) => (
+                <li key={a._id}>
                   {new Date(a.appointment_time).toLocaleString()}: {a.reason} (Status: {a.status})
                 </li>
               ))}
             </ul>
           )}
+
+          <h4>Trigger New Alert</h4>
+          <div className="alert-form">
+            <label>Alert Type:</label>
+            <select value={alertForm.alert_type} onChange={(e) => setAlertForm({ ...alertForm, alert_type: e.target.value })}>
+              <option value="doctor_review_needed">Doctor Review Needed</option>
+              <option value="high_risk_vitals">High Risk Vitals</option>
+              <option value="wound_deterioration">Wound Deterioration</option>
+              <option value="symptom_escalation">Symptom Escalation</option>
+              <option value="other">Other</option>
+            </select>
+            <label>Severity:</label>
+            <select value={alertForm.severity} onChange={(e) => setAlertForm({ ...alertForm, severity: e.target.value })}>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+            <textarea
+              placeholder="Alert Message..."
+              value={alertForm.message}
+              onChange={(e) => setAlertForm({ ...alertForm, message: e.target.value })}
+            />
+            <button onClick={handleTriggerAlert} disabled={!alertForm.message.trim()}>Trigger Alert</button>
+          </div>
         </div>
       )}
     </div>

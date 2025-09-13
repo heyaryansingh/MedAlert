@@ -1,0 +1,11 @@
+[
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a3c",
+    "email": "doctor1@example.com",
+    "password": "password123",
+    "role": "doctor",
+    "name": "Dr. Jane Doe",
+    "specialization": "General Practice",
+    "contact_number": "555-000-1111"
+  }
+]

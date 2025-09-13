@@ -1,0 +1,23 @@
+[
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a41",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3b",
+    "timestamp": "2025-09-12T12:30:00.000Z",
+    "symptom_description": "Mild headache",
+    "severity": 4
+  },
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a42",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3b",
+    "timestamp": "2025-09-12T16:00:00.000Z",
+    "symptom_description": "Feeling fatigued",
+    "severity": 6
+  },
+  {
+    "_id": "650d7f3e7b1f8c9d0e1f2a43",
+    "patient_id": "650d7f3e7b1f8c9d0e1f2a3d",
+    "timestamp": "2025-09-12T14:00:00.000Z",
+    "symptom_description": "Sore throat",
+    "severity": 5
+  }
+]

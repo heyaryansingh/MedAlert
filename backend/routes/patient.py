@@ -5,9 +5,9 @@ from typing import List, Optional
 from datetime import datetime
 import shutil
 
-from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId
+from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary
 from backend.main import get_database # Assuming get_database is implemented in main.py
-from backend.ai.chatbot_logic import get_chatbot_response, analyze_patient_message # Placeholder for AI functions
+from backend.ai.chatbot_logic import get_chatbot_response # Placeholder for AI functions
 
 router = APIRouter()
 
@@ -99,16 +99,33 @@ async def chatbot_message(
     # Log patient message
     await db.chat_messages.insert_one(message.model_dump(by_alias=True, exclude=["id"]))
 
-    # Get AI response (placeholder for actual AI logic)
-    ai_response_text, requires_image = await get_chatbot_response(message.message, patient_id, db)
+    # Get AI response, image requirement, and AI summary
+    ai_response_text, requires_image, ai_summary = await get_chatbot_response(message.message, patient_id, db)
 
     ai_message = ChatMessage(
         patient_id=patient_id,
         sender="ai",
         message=ai_response_text,
+        ai_summary=ai_summary,
+        requires_image_upload=requires_image,
         timestamp=datetime.utcnow()
     )
     await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
+
+    # Update or create ConversationSummary for the patient
+    existing_summary = await db.conversation_summaries.find_one({"patient_id": patient_id})
+    if existing_summary:
+        await db.conversation_summaries.update_one(
+            {"patient_id": patient_id},
+            {"$set": {"summary_text": ai_summary, "last_updated": datetime.utcnow()}}
+        )
+    else:
+        new_summary = ConversationSummary(
+            patient_id=patient_id,
+            summary_text=ai_summary,
+            last_updated=datetime.utcnow()
+        )
+        await db.conversation_summaries.insert_one(new_summary.model_dump(by_alias=True, exclude=["id"]))
 
     # If AI requests an image, create an alert for the patient
     if requires_image:
@@ -118,7 +135,8 @@ async def chatbot_message(
             message="The AI chatbot has requested an image related to your symptoms. Please upload one.",
             severity="medium",
             resolved=False,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
+            chat_message_id=ai_message.id # Link alert to the AI message that requested the image
         )
         await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
 
@@ -135,3 +153,15 @@ async def get_alerts(
     alerts_cursor = db.alerts.find({"patient_id": patient_id, "resolved": False}).sort("timestamp", -1)
     alerts = [Alert(**alert) async for alert in alerts_cursor]
     return alerts
+
+@router.get("/patient/chat_history", response_model=List[ChatMessage])
+async def get_patient_chat_history(
+    patient_id: PyObjectId = Depends(get_current_patient_id),
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """
+    Returns the chat history for the current patient.
+    """
+    chat_messages_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
+    chat_messages = [ChatMessage(**m) async for m in chat_messages_cursor]
+    return chat_messages
