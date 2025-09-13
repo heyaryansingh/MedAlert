@@ -84,6 +84,18 @@ const PatientChatbot: React.FC = () => {
         if (chatResponse.ok) {
           const chatHistory = await chatResponse.json();
           setMessages(chatHistory);
+
+          // If no chat history, add an initial message from the AI
+          if (chatHistory.length === 0) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                sender: 'ai',
+                message: 'Hello! I am MedAlert AI. How are you feeling today?',
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
         }
 
         // Fetch vitals

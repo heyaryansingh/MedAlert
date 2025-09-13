@@ -1,6 +1,6 @@
 import './App.css';
 import React, { useState } from 'react';
-import SimplifiedPatientDashboard from './components/SimplifiedPatientDashboard';
+import PatientChatbot from './components/PatientChatbot';
 import SimplifiedDoctorDashboard from './components/SimplifiedDoctorDashboard';
 
 function App() {
@@ -38,7 +38,7 @@ function App() {
       </header>
       <div className="dashboards-container">
         {userType === 'doctor' && <SimplifiedDoctorDashboard />}
-        {userType === 'patient' && <SimplifiedPatientDashboard />}
+        {userType === 'patient' && <PatientChatbot />}
       </div>
     </div>
   );

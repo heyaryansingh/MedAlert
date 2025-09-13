@@ -6,7 +6,7 @@ echo Starting MedAlert AI setup...
 
 REM 1. Populate MongoDB with simulated data
 echo Populating MongoDB with simulated data...
-python backend/utils/data_generator.py
+python -m backend.utils.data_generator
 IF %ERRORLEVEL% NEQ 0 (
     echo Error populating data. Exiting.
     exit /b %ERRORLEVEL%
