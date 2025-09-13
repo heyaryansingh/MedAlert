@@ -545,6 +545,59 @@
             border-radius: 10px;
         }
         
+        .doctor-actions-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .doctor-action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .doctor-action-btn.prescription {
+            background: #28a745;
+            color: white;
+        }
+        
+        .doctor-action-btn.appointment {
+            background: #007bff;
+            color: white;
+        }
+        
+        .doctor-action-btn.question {
+            background: #ffc107;
+            color: black;
+        }
+        
+        .doctor-action-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+        
+        .image-btn {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        
+        .image-btn:hover {
+            background: #5a32a3;
+        }
+        
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -816,6 +869,8 @@
                 <div class="chat-input">
                     <input type="text" id="messageInput" placeholder="Describe your symptoms or how you're feeling..." />
                     <button id="sendButton" onclick="sendMessage()">Send</button>
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    <button onclick="document.getElementById('imageUpload').click()" class="image-btn">📷 Upload Image</button>
                 </div>
                 
                 <div class="checkup-done">
@@ -1069,6 +1124,53 @@
             }
         }
         
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Show loading
+            showTypingIndicator();
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('patient_id', currentPatientId);
+                
+                const response = await fetch(`${API_BASE_URL}/patient/upload_image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Add image message to chat
+                    const imageMessage = {
+                        sender: 'patient',
+                        message: `Uploaded image: ${file.name}`,
+                        image_url: `data:image/jpeg;base64,${file.name}`,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    displayMessage(imageMessage);
+                    
+                    // Add AI response
+                    if (result.ai_response) {
+                        displayMessage(result.ai_response);
+                    }
+                } else {
+                    alert('Failed to upload image. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image. Please try again.');
+            } finally {
+                hideTypingIndicator();
+                // Clear the file input
+                event.target.value = '';
+            }
+        }
+
         async function completeCheckup() {
             try {
                 const response = await fetch(`${API_BASE_URL}/patient/generate_notes`, {
@@ -1220,7 +1322,7 @@
                 } else {
                     detailsDiv.innerHTML = `
                         <h4>AI Summary:</h4>
-                        <div class="patient-summary">${data.summary.replace(/\n/g, '<br>')}</div>
+                        <div class="patient-summary">${data.summary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
                         
                         <h4>Conversation History:</h4>
                         <div class="conversation-history">
@@ -1238,9 +1340,11 @@
                             </button>
                         ` : ''}
                         
-                        <button class="mark-reviewed-btn" onclick="showDoctorActions('${patientId}')" style="background: #667eea; margin-left: 10px;">
-                            Doctor Actions
-                        </button>
+                        <div class="doctor-actions-buttons">
+                            <button class="doctor-action-btn prescription" onclick="showPrescriptionForm('${patientId}')">💊 Prescribe</button>
+                            <button class="doctor-action-btn appointment" onclick="showAppointmentForm('${patientId}')">📅 Appointment</button>
+                            <button class="doctor-action-btn question" onclick="showQuestionForm('${patientId}')">❓ Question</button>
+                        </div>
                     `;
                 }
                 
@@ -1355,54 +1459,28 @@
         }
         
         // Doctor Action Functions
-        function showDoctorActions(patientId) {
+        function showPrescriptionForm(patientId) {
             currentSelectedPatient = patientId;
-            
-            // Remove existing action forms
-            document.querySelectorAll('.doctor-actions').forEach(action => action.remove());
-            
-            // Create doctor actions panel
-            const actionsPanel = document.createElement('div');
-            actionsPanel.className = 'doctor-actions';
-            actionsPanel.innerHTML = `
-                <h3>Doctor Actions for Patient ${patientId}</h3>
-                <div class="action-buttons">
-                    <button class="action-btn prescription" onclick="showActionForm('prescription')">💊 Prescribe Medication</button>
-                    <button class="action-btn appointment" onclick="showActionForm('appointment')">📅 Suggest Appointment</button>
-                    <button class="action-btn question" onclick="showActionForm('question')">❓ Send Question</button>
-                </div>
-                
-                <div class="action-form" id="prescriptionForm">
-                    <h4>Prescribe Medication</h4>
-                    <textarea placeholder="Enter medication details, dosage, and instructions..."></textarea>
-                    <div class="action-form-buttons">
-                        <button class="action-form-btn send" onclick="sendDoctorAction('prescription')">Send Prescription</button>
-                        <button class="action-form-btn cancel" onclick="hideActionForm()">Cancel</button>
-                    </div>
-                </div>
-                
-                <div class="action-form" id="appointmentForm">
-                    <h4>Suggest Appointment</h4>
-                    <textarea placeholder="Enter appointment details, urgency, and scheduling information..."></textarea>
-                    <div class="action-form-buttons">
-                        <button class="action-form-btn send" onclick="sendDoctorAction('appointment')">Send Appointment</button>
-                        <button class="action-form-btn cancel" onclick="hideActionForm()">Cancel</button>
-                    </div>
-                </div>
-                
-                <div class="action-form" id="questionForm">
-                    <h4>Send Question</h4>
-                    <textarea placeholder="Enter your question for the patient..."></textarea>
-                    <div class="action-form-buttons">
-                        <button class="action-form-btn send" onclick="sendDoctorAction('question')">Send Question</button>
-                        <button class="action-form-btn cancel" onclick="hideActionForm()">Cancel</button>
-                    </div>
-                </div>
-            `;
-            
-            // Add to patient details
-            const patientDetails = document.getElementById(`details-${patientId}`);
-            patientDetails.appendChild(actionsPanel);
+            const content = prompt('Enter prescription details (medication, dosage, instructions):');
+            if (content) {
+                sendDoctorAction('prescription', content);
+            }
+        }
+        
+        function showAppointmentForm(patientId) {
+            currentSelectedPatient = patientId;
+            const content = prompt('Enter appointment details (urgency, scheduling, instructions):');
+            if (content) {
+                sendDoctorAction('appointment', content);
+            }
+        }
+        
+        function showQuestionForm(patientId) {
+            currentSelectedPatient = patientId;
+            const content = prompt('Enter your question for the patient:');
+            if (content) {
+                sendDoctorAction('question', content);
+            }
         }
         
         function showActionForm(actionType) {
@@ -1417,13 +1495,14 @@
             document.querySelectorAll('.action-form').forEach(form => form.classList.remove('show'));
         }
         
-        async function sendDoctorAction(actionType) {
-            const form = document.getElementById(`${actionType}Form`);
-            const textarea = form.querySelector('textarea');
-            const content = textarea.value.trim();
+        async function sendDoctorAction(actionType, content) {
+            if (!currentSelectedPatient) {
+                alert('Please select a patient first');
+                return;
+            }
             
-            if (!content) {
-                alert('Please enter content for the ' + actionType);
+            if (!content || !content.trim()) {
+                alert(`Please enter ${actionType} details before sending.`);
                 return;
             }
             
@@ -1437,18 +1516,15 @@
                         patient_id: currentSelectedPatient,
                         action_type: actionType,
                         content: content,
-                        doctor_id: currentUser.user_id
+                        doctor_id: 'doctor_123'
                     })
                 });
                 
                 const result = await response.json();
-                
                 if (result.success) {
-                    alert('Action sent to patient successfully!');
-                    textarea.value = '';
-                    hideActionForm();
+                    alert(`${actionType} sent successfully!`);
                 } else {
-                    alert('Failed to send action: ' + result.message);
+                    alert(`Failed to send ${actionType}: ${result.message}`);
                 }
             } catch (error) {
                 console.error('Error sending doctor action:', error);
