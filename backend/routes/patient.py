@@ -5,9 +5,9 @@ from typing import List, Optional
 from datetime import datetime
 import shutil
 
-from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary
+from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary, DoctorNote, Patient
 from backend.main import get_database # Assuming get_database is implemented in main.py
-from backend.ai.chatbot_logic import get_chatbot_response # Placeholder for AI functions
+from backend.ai.chatbot_logic import get_chatbot_response, summarize_conversation_for_doctor # Placeholder for AI functions
 
 router = APIRouter()
 
@@ -165,3 +165,51 @@ async def get_patient_chat_history(
     chat_messages_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
     chat_messages = [ChatMessage(**m) async for m in chat_messages_cursor]
     return chat_messages
+
+@router.post("/patient/generate_notes")
+async def generate_doctor_notes(
+    patient_id: PyObjectId = Depends(get_current_patient_id),
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """
+    Generates AI notes for the doctor based on the patient's chat history.
+    """
+    # Fetch all chat messages for the patient
+    chat_history_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
+    chat_history = [ChatMessage(**msg) async for msg in chat_history_cursor]
+
+    if not chat_history:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No chat history found for this patient.")
+
+    # Concatenate chat messages into a single string for summarization
+    full_conversation_text = "\n".join([
+        f"{'Patient' if msg.sender == 'patient' else 'AI'}: {msg.message}"
+        for msg in chat_history
+    ])
+
+    # Generate a comprehensive summary/note using the AI
+    ai_generated_note_content = await summarize_conversation_for_doctor(full_conversation_text)
+
+    # Fetch the patient to get their assigned doctor_id
+    patient = await db.patients.find_one({"_id": patient_id})
+    if not patient or not patient.get("doctor_id"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient or assigned doctor not found.")
+    
+    doctor_id = PyObjectId(patient["doctor_id"])
+
+    # Create and store the DoctorNote
+    doctor_note = DoctorNote(
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        note_content=ai_generated_note_content,
+        timestamp=datetime.utcnow()
+    )
+
+    new_note = await db.doctor_notes.insert_one(doctor_note.model_dump(by_alias=True, exclude=["id"]))
+    
+    if new_note.inserted_id:
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={"message": "AI notes generated and sent to doctor successfully.", "note_id": str(new_note.inserted_id)}
+        )
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate and store AI notes.")

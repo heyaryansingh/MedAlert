@@ -41,10 +41,34 @@ const PatientChatbot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Mock patient ID for demo purposes
-  const patientId = '650d7f3e7b1f8c9d0e1f2a3b'; 
+  const patientId = '650d7f3e7b1f8c9d0e1f2a3b';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCheckupDone = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/patient/generate_notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ patient_id: patientId }),
+      });
+
+      if (response.ok) {
+        alert('Checkup complete! Your notes have been sent to your doctor.');
+        // Optionally, clear chat or navigate away
+        setMessages([]); // Clear chat for a new session
+      } else {
+        console.error('Failed to generate AI notes');
+        alert('Failed to complete checkup. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error during checkup completion:', error);
+      alert('An error occurred. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -225,6 +249,7 @@ const PatientChatbot: React.FC = () => {
           <input type="file" accept="image/*" onChange={handleImageChange} />
           <button onClick={handleSendMessage}>Send</button>
         </div>
+        <button className="checkup-done-button" onClick={handleCheckupDone}>Checkup Done</button>
       </div>
 
       <div className="vitals-section">
