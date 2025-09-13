@@ -1,10 +1,12 @@
 import random
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional
 from faker import Faker
 from bson import ObjectId
+import os
+import json
 
-from backend.models import (
+from ..models import (
     Patient, Doctor, Vital, SymptomLog, ChatMessage, Alert,
     DoctorNote, Prescription, Appointment, ImageUpload, PyObjectId
 )
@@ -171,7 +173,7 @@ def generate_fake_appointments(patient_id: PyObjectId, doctor_id: PyObjectId, nu
     """Generates fake appointments for a patient."""
     appointments = []
     for i in range(num_entries):
-        appointment_time = datetime.utcnow() + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice([0, 15, 30, 45]))
+        appointment_time = datetime.utcnow() + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice())
         appointments.append(Appointment(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -186,7 +188,7 @@ def generate_fake_appointments(patient_id: PyObjectId, doctor_id: PyObjectId, nu
 def generate_all_simulated_data(num_patients: int = 3, num_doctors: int = 1) -> Dict:
     """Generates a complete set of simulated data for the demo."""
     doctors = [generate_fake_doctor() for _ in range(num_doctors)]
-    patients = [generate_fake_patient(doctor_id=doctors[0].id) for _ in range(num_patients)] # Assign all patients to the first doctor for simplicity
+    patients = [generate_fake_patient(doctor_id=doctors.id) for _ in range(num_patients)] # Assign all patients to the first doctor for simplicity
 
     all_data = {
         "doctors": [d.model_dump(by_alias=True) for d in doctors],
@@ -208,16 +210,16 @@ def generate_all_simulated_data(num_patients: int = 3, num_doctors: int = 1) -> 
         
         # Assign notes, prescriptions, appointments to the first doctor for simplicity
         if doctors:
-            all_data["doctor_notes"].extend([n.model_dump(by_alias=True) for n in generate_fake_doctor_notes(patient.id, doctors[0].id)])
-            all_data["prescriptions"].extend([p.model_dump(by_alias=True) for p in generate_fake_prescriptions(patient.id, doctors[0].id)])
-            all_data["appointments"].extend([a.model_dump(by_alias=True) for a in generate_fake_appointments(patient.id, doctors[0].id)])
+            all_data["doctor_notes"].extend([n.model_dump(by_alias=True) for n in generate_fake_doctor_notes(patient.id, doctors.id)])
+            all_data["prescriptions"].extend([p.model_dump(by_alias=True) for p in generate_fake_prescriptions(patient.id, doctors.id)])
+            all_data["appointments"].extend([a.model_dump(by_alias=True) for a in generate_fake_appointments(patient.id, doctors.id)])
 
     return all_data
 
 if __name__ == "__main__":
     # Example usage:
     simulated_data = generate_all_simulated_data(num_patients=2, num_doctors=1)
-    import json
+    
     # Convert ObjectId to string for JSON serialization
     def convert_objectid_to_str(obj):
         if isinstance(obj, ObjectId):

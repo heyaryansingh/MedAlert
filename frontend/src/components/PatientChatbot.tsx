@@ -1,0 +1,248 @@
+import React, { useState, useEffect, useRef } from 'react';
+import Plot from 'react-plotly.js';
+
+interface ChatMessage {
+  sender: 'patient' | 'ai';
+  message: string;
+  timestamp: string;
+  image_url?: string;
+}
+
+interface Vital {
+  timestamp: string;
+  heart_rate?: number;
+  blood_pressure_systolic?: number;
+  blood_pressure_diastolic?: number;
+  temperature?: number;
+  oxygen_saturation?: number;
+}
+
+interface Alert {
+  alert_type: string;
+  message: string;
+  severity: string;
+  timestamp: string;
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+const PatientChatbot: React.FC = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState<string>('');
+  const [vitals, setVitals] = useState<Vital[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Mock patient ID for demo purposes
+  const patientId = '650d7f3e7b1f8c9d0e1f2a3b'; 
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    // Fetch initial data (vitals, alerts, chat history)
+    const fetchPatientData = async () => {
+      try {
+        // Fetch chat history
+        const chatResponse = await fetch(`${API_BASE_URL}/patient/chat_history/${patientId}`);
+        if (chatResponse.ok) {
+          const chatHistory = await chatResponse.json();
+          setMessages(chatHistory);
+        }
+
+        // Fetch vitals
+        const vitalsResponse = await fetch(`${API_BASE_URL}/patient/vitals/${patientId}`);
+        if (vitalsResponse.ok) {
+          const fetchedVitals = await vitalsResponse.json();
+          setVitals(fetchedVitals);
+        }
+
+        // Fetch alerts
+        const alertsResponse = await fetch(`${API_BASE_URL}/patient/get_alerts`);
+        if (alertsResponse.ok) {
+          const fetchedAlerts = await alertsResponse.json();
+          setAlerts(fetchedAlerts);
+        }
+
+        // Fetch risk score (mock for now, will be calculated by backend)
+        const riskResponse = await fetch(`${API_BASE_URL}/patient/risk_score/${patientId}`);
+        if (riskResponse.ok) {
+          const { risk_score } = await riskResponse.json();
+          setRiskScore(risk_score);
+        }
+
+      } catch (error) {
+        console.error('Error fetching patient data:', error);
+      }
+    };
+
+    fetchPatientData();
+  }, [patientId]);
+
+  const handleSendMessage = async () => {
+    if (inputMessage.trim() === '' && !selectedImage) return;
+
+    const newMessage: ChatMessage = {
+      sender: 'patient',
+      message: inputMessage,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newMessage]);
+    setInputMessage('');
+
+    try {
+      // Send message to backend chatbot
+      const response = await fetch(`${API_BASE_URL}/patient/chatbot_message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ patient_id: patientId, message: inputMessage }),
+      });
+
+      if (response.ok) {
+        const aiMessage: ChatMessage = await response.json();
+        setMessages((prev) => [...prev, aiMessage]);
+        // Re-fetch alerts as AI might generate new ones
+        const alertsResponse = await fetch(`${API_BASE_URL}/patient/get_alerts`);
+        if (alertsResponse.ok) {
+          const fetchedAlerts = await alertsResponse.json();
+          setAlerts(fetchedAlerts);
+        }
+      } else {
+        console.error('Failed to get AI response');
+      }
+
+      // Handle image upload if selected
+      if (selectedImage) {
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('description', `Image uploaded by patient with message: ${inputMessage}`);
+
+        const imageUploadResponse = await fetch(`${API_BASE_URL}/patient/upload_image`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (imageUploadResponse.ok) {
+          const result = await imageUploadResponse.json();
+          console.log('Image upload successful:', result);
+          // Add image message to chat
+          setMessages((prev) => [...prev, {
+            sender: 'patient',
+            message: `Image uploaded: ${selectedImage.name}`,
+            timestamp: new Date().toISOString(),
+            image_url: result.image_url, // Assuming backend returns the URL
+          }]);
+          setSelectedImage(null); // Clear selected image
+        } else {
+          console.error('Failed to upload image');
+        }
+      }
+
+    } catch (error) {
+      console.error('Error sending message or uploading image:', error);
+    }
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedImage(event.target.files[0]);
+    }
+  };
+
+  // Render vitals trends using Plotly
+  const renderVitalsChart = (vitalKey: keyof Vital, title: string, unit: string) => {
+    const dates = vitals.map(v => new Date(v.timestamp));
+    const values = vitals.map(v => v[vitalKey]).filter(Boolean); // Filter out undefined/null
+
+    if (values.length === 0) return null;
+    
+    return (
+      <Plot
+        data={[
+          {
+            x: dates,
+            y: values,
+            type: 'scatter',
+            mode: 'lines+markers',
+            marker: { color: 'blue' },
+          },
+        ]}
+        layout={{
+          title: title,
+          xaxis: { title: 'Date' },
+          yaxis: { title: unit },
+          autosize: true,
+        }}
+        useResizeHandler={true}
+        style={{ width: '100%', height: '300px' }}
+      />
+    );
+  };
+
+  return (
+    <div className="patient-dashboard">
+      <h2>Patient Dashboard</h2>
+
+      <div className="chatbot-section">
+        <h3>AI Chatbot</h3>
+        <div className="chat-window">
+          {messages.map((msg, index) => (
+            <div key={index} className={`chat-message ${msg.sender}`}>
+              <strong>{msg.sender === 'patient' ? 'You' : 'MedAlert AI'}:</strong> {msg.message}
+              {msg.image_url && <img src={msg.image_url} alt="Uploaded" style={{ maxWidth: '200px', display: 'block' }} />}
+              <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        <div className="chat-input">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Type your message..."
+          />
+          <input type="file" accept="image/*" onChange={handleImageChange} />
+          <button onClick={handleSendMessage}>Send</button>
+        </div>
+      </div>
+
+      <div className="vitals-section">
+        <h3>Vitals Trends</h3>
+        {renderVitalsChart('heart_rate', 'Heart Rate (bpm)', 'BPM')}
+        {renderVitalsChart('blood_pressure_systolic', 'Systolic Blood Pressure (mmHg)', 'mmHg')}
+        {renderVitalsChart('blood_pressure_diastolic', 'Diastolic Blood Pressure (mmHg)', 'mmHg')}
+        {renderVitalsChart('temperature', 'Temperature (°C)', '°C')}
+        {renderVitalsChart('oxygen_saturation', 'Oxygen Saturation (%)', '%')}
+      </div>
+
+      <div className="risk-alerts-section">
+        <h3>AI Risk Score: {riskScore !== null ? riskScore : 'N/A'}</h3>
+        <h3>Alerts</h3>
+        {alerts.length === 0 ? (
+          <p>No active alerts.</p>
+        ) : (
+          <ul>
+            {alerts.map((alert, index) => (
+              <li key={index} className={`alert-${alert.severity.toLowerCase()}`}>
+                <strong>{alert.alert_type}:</strong> {alert.message} ({new Date(alert.timestamp).toLocaleString()})
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientChatbot;

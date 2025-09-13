@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
 from bson import ObjectId
 
@@ -10,13 +10,13 @@ class PyObjectId(ObjectId):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v: Any) -> ObjectId:
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
 
     @classmethod
-    def __modify_schema__(cls, field_schema: dict):
+    def __get_pydantic_json_schema__(cls, field_schema: dict):
         field_schema.update(type="string")
 
 # --- User Models ---
@@ -27,7 +27,7 @@ class User(BaseModel):
     role: str # "patient" or "doctor"
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True # Replaces allow_population_by_field_name in Pydantic v2
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -56,7 +56,7 @@ class Vital(BaseModel):
     # Add more vitals as needed
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -69,7 +69,7 @@ class SymptomLog(BaseModel):
     # Additional fields for symptoms
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -82,7 +82,7 @@ class ChatMessage(BaseModel):
     image_url: Optional[str] = None # URL to uploaded image if any
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -96,7 +96,7 @@ class Alert(BaseModel):
     resolved: bool = False
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -108,7 +108,7 @@ class DoctorNote(BaseModel):
     note_content: str
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -124,7 +124,7 @@ class Prescription(BaseModel):
     end_date: datetime
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -138,7 +138,7 @@ class Appointment(BaseModel):
     status: str # "scheduled", "completed", "cancelled"
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -151,6 +151,6 @@ class ImageUpload(BaseModel):
     ai_analysis_summary: Optional[str] = None # AI-generated summary of the image
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
