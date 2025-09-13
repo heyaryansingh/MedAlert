@@ -144,6 +144,7 @@ const DoctorDashboard: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientData, setPatientData] = useState<PatientDetailData | null>(null);
+  const [notifications, setNotifications] = useState<Alert[]>([]);
   const [newNote, setNewNote] = useState<string>('');
   const [newPrescription, setNewPrescription] = useState<NewPrescriptionForm>({
     medication_name: '',
@@ -168,7 +169,7 @@ const DoctorDashboard: React.FC = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/get_patients`);
+        const response = await fetch(`${API_BASE_URL}/doctor/get_patients`);
         if (response.ok) {
           const fetchedPatients = await response.json();
           setPatients(fetchedPatients);
@@ -177,12 +178,26 @@ const DoctorDashboard: React.FC = () => {
         console.error('Error fetching patients:', error);
       }
     };
+    
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/doctor/get_notifications`);
+        if (response.ok) {
+          const fetchedNotifications = await response.json();
+          setNotifications(fetchedNotifications);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+    
     fetchPatients();
+    fetchNotifications();
   }, []);
 
   const fetchPatientData = async (patientId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/get_patient_data/${patientId}`);
+      const response = await fetch(`${API_BASE_URL}/doctor/get_patient_data/${patientId}`);
       if (response.ok) {
         const data = await response.json();
         setPatientData(data);
@@ -201,7 +216,7 @@ const DoctorDashboard: React.FC = () => {
   const handleAddNote = async () => {
     if (!selectedPatient || newNote.trim() === '') return;
     try {
-      const response = await fetch(`${API_BASE_URL}/add_notes`, {
+      const response = await fetch(`${API_BASE_URL}/doctor/add_notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, note_content: newNote }),
@@ -217,10 +232,28 @@ const DoctorDashboard: React.FC = () => {
     }
   };
 
+  const handleMarkNotificationResolved = async (alertId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/doctor/mark_alert_resolved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alert_id: alertId }),
+      });
+      if (response.ok) {
+        // Remove the resolved notification from the list
+        setNotifications(prev => prev.filter(alert => alert._id !== alertId));
+      } else {
+        console.error('Failed to mark notification as resolved');
+      }
+    } catch (error) {
+      console.error('Error marking notification as resolved:', error);
+    }
+  };
+
   const handlePrescribe = async () => {
     if (!selectedPatient || !newPrescription.medication_name) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/prescribe`, {
+      const response = await fetch(`${API_BASE_URL}/doctor/prescribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, ...newPrescription }),
@@ -245,7 +278,7 @@ const DoctorDashboard: React.FC = () => {
   const handleScheduleAppointment = async () => {
     if (!selectedPatient || !newAppointment.appointment_time) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/schedule_appointment`, {
+      const response = await fetch(`${API_BASE_URL}/doctor/schedule_appointment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient_id: selectedPatient._id, ...newAppointment }),
@@ -267,7 +300,7 @@ const DoctorDashboard: React.FC = () => {
   const handleAddComment = async (chatMessageId: string) => {
     if (!selectedPatient || !commentInput[chatMessageId]?.trim()) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/add_chat_comment`, {
+      const response = await fetch(`${API_BASE_URL}/doctor/add_chat_comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_message_id: chatMessageId, comment_content: commentInput[chatMessageId] }),
@@ -290,7 +323,7 @@ const DoctorDashboard: React.FC = () => {
   const handleTriggerAlert = async () => {
     if (!selectedPatient || !alertForm.message.trim()) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/trigger_alert`, {
+      const response = await fetch(`${API_BASE_URL}/doctor/trigger_alert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(alertForm),
@@ -344,6 +377,30 @@ const DoctorDashboard: React.FC = () => {
   return (
     <div className="doctor-dashboard">
       <h2>Doctor Dashboard</h2>
+
+      <div className="notifications-section">
+        <h3>Notifications ({notifications.length})</h3>
+        {notifications.length === 0 ? (
+          <p>No new notifications.</p>
+        ) : (
+          <ul>
+            {notifications.map((notification) => (
+              <li key={notification._id} className={`notification-${notification.severity.toLowerCase()}`}>
+                <div className="notification-content">
+                  <strong>{notification.alert_type}:</strong> {notification.message}
+                  <span className="timestamp">{new Date(notification.timestamp).toLocaleString()}</span>
+                </div>
+                <button 
+                  onClick={() => handleMarkNotificationResolved(notification._id || '')}
+                  className="resolve-button"
+                >
+                  Mark Resolved
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="patient-list-section">
         <h3>My Patients</h3>

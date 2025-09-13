@@ -1,13 +1,15 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 
 from backend.models import (
     Patient, Vital, SymptomLog, ChatMessage, Alert, DoctorNote,
     Prescription, Appointment, ImageUpload, PyObjectId, ConversationSummary
 )
-from backend.main import get_database # Assuming get_database is implemented in main.py
+from backend.dependencies import get_database
 from backend.ai.chatbot_logic import analyze_vitals_for_risk, analyze_image_for_wound, get_patient_risk_score # Import AI functions
 
 router = APIRouter()
@@ -224,36 +226,36 @@ class TriggerAlertRequest(BaseModel):
     severity: str
     chat_message_id: Optional[str] = None
 
-@router.post("/doctor/trigger_alert", response_model=Alert)
-async def trigger_alert(
-    request: TriggerAlertRequest,
+@router.get("/doctor/get_notifications", response_model=List[Alert])
+async def get_doctor_notifications(
     doctor_id: PyObjectId = Depends(get_current_doctor_id),
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Allows a doctor to manually trigger an alert for a patient.
+    Returns notifications and alerts for the current doctor.
     """
-    patient_obj_id = PyObjectId(request.patient_id)
-    
-    alert = Alert(
-        patient_id=patient_obj_id,
-        alert_type=request.alert_type,
-        message=request.message,
-        severity=request.severity,
-        resolved=False,
-        timestamp=datetime.utcnow(),
-        doctor_id=doctor_id,
-        chat_message_id=PyObjectId(request.chat_message_id) if request.chat_message_id else None
-    )
-    new_alert = await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
-    created_alert = await db.alerts.find_one({"_id": new_alert.inserted_id})
+    alerts_cursor = db.alerts.find({"doctor_id": doctor_id, "resolved": False}).sort("timestamp", -1)
+    alerts = [Alert(**alert) async for alert in alerts_cursor]
+    return alerts
 
-    if created_alert:
-        # Optionally, update the linked chat message to mark that an alert was triggered
-        if request.chat_message_id:
-            await db.chat_messages.update_one(
-                {"_id": PyObjectId(request.chat_message_id)},
-                {"$set": {"alert_triggered": True}}
-            )
-        return Alert(**created_alert)
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to trigger alert")
+@router.post("/doctor/mark_alert_resolved")
+async def mark_alert_resolved(
+    alert_id: str,
+    doctor_id: PyObjectId = Depends(get_current_doctor_id),
+    db: AsyncIOMotorClient = Depends(get_database)
+):
+    """
+    Marks an alert as resolved by the doctor.
+    """
+    alert_obj_id = PyObjectId(alert_id)
+    result = await db.alerts.update_one(
+        {"_id": alert_obj_id, "doctor_id": doctor_id},
+        {"$set": {"resolved": True}}
+    )
+    
+    if result.modified_count > 0:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Alert marked as resolved successfully."}
+        )
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found or already resolved.")

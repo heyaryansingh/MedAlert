@@ -16,6 +16,7 @@ from backend.models import (
 from backend.routes import auth # Import the auth router
 from backend.routes import patient # Import the patient router
 from backend.routes import doctor # Import the doctor router
+from backend.dependencies import get_database # Import get_database from dependencies
 
 app = FastAPI(
     title="MedAlert AI Backend",
@@ -38,45 +39,65 @@ app.add_middleware(
 )
 
 # MongoDB Connection
-MONGO_DETAILS = os.getenv("DATABASE_URL")
+MONGO_DETAILS = os.getenv("DATABASE_URL", "mongodb://localhost:27017/medalertdb")
 if not MONGO_DETAILS:
-    raise ValueError("DATABASE_URL environment variable not set.")
+    print("Warning: DATABASE_URL not set, using default MongoDB connection")
 
-client = AsyncIOMotorClient(MONGO_DETAILS)
-database = client.medalertdb # Database name
+try:
+    client = AsyncIOMotorClient(MONGO_DETAILS)
+    database = client.medalertdb # Database name
+    print("Connected to MongoDB successfully.")
+except Exception as e:
+    print(f"Warning: Could not connect to MongoDB: {e}")
+    print("Running in demo mode without database connection.")
+    client = None
+    database = None
 
 # Collections
-patients_collection = database.patients
-doctors_collection = database.doctors
-vitals_collection = database.vitals
-symptom_logs_collection = database.symptom_logs
-chat_messages_collection = database.chat_messages
-alerts_collection = database.alerts
-doctor_notes_collection = database.doctor_notes
-prescriptions_collection = database.prescriptions
-appointments_collection = database.appointments
-image_uploads_collection = database.image_uploads
-conversation_summaries_collection = database.conversation_summaries
+if database:
+    patients_collection = database.patients
+    doctors_collection = database.doctors
+    vitals_collection = database.vitals
+    symptom_logs_collection = database.symptom_logs
+    chat_messages_collection = database.chat_messages
+    alerts_collection = database.alerts
+    doctor_notes_collection = database.doctor_notes
+    prescriptions_collection = database.prescriptions
+    appointments_collection = database.appointments
+    image_uploads_collection = database.image_uploads
+    conversation_summaries_collection = database.conversation_summaries
+else:
+    # Mock collections for demo mode
+    patients_collection = None
+    doctors_collection = None
+    vitals_collection = None
+    symptom_logs_collection = None
+    chat_messages_collection = None
+    alerts_collection = None
+    doctor_notes_collection = None
+    prescriptions_collection = None
+    appointments_collection = None
+    image_uploads_collection = None
+    conversation_summaries_collection = None
 
 @app.on_event("startup")
 async def startup_db_client():
     """Connects to MongoDB on application startup."""
-    app.mongodb_client = client
-    app.mongodb = database
-    print("Connected to MongoDB.")
+    if client:
+        app.mongodb_client = client
+        app.mongodb = database
+        print("Connected to MongoDB.")
+    else:
+        print("Running in demo mode without MongoDB.")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     """Closes MongoDB connection on application shutdown."""
-    app.mongodb_client.close()
-    print("Disconnected from MongoDB.")
+    if client:
+        app.mongodb_client.close()
+        print("Disconnected from MongoDB.")
 
 @app.get("/", tags=["Root"])
 async def read_root():
     """Root endpoint for the MedAlert AI API."""
     return {"message": "Welcome to MedAlert AI API!"}
-
-# Dependency to get the database client
-async def get_database() -> AsyncIOMotorClient:
-    """Dependency that provides the MongoDB database client."""
-    return database

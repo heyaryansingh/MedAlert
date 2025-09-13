@@ -173,7 +173,7 @@ def generate_fake_appointments(patient_id: PyObjectId, doctor_id: PyObjectId, nu
     """Generates fake appointments for a patient."""
     appointments = []
     for i in range(num_entries):
-        appointment_time = datetime.utcnow() + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice())
+        appointment_time = datetime.utcnow() + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice([0, 15, 30, 45]))
         appointments.append(Appointment(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -190,8 +190,7 @@ def generate_all_simulated_data(num_patients: int = 3, num_doctors: int = 1) -> 
     doctors = [generate_fake_doctor() for _ in range(num_doctors)]
     
     # Ensure there's at least one doctor to assign to patients
-    # Ensure there's at least one doctor to assign to patients
-    doctor_id_for_patients = doctors.id if doctors else None
+    doctor_id_for_patients = doctors[0].id if doctors else None
     patients = [generate_fake_patient(doctor_id=doctor_id_for_patients) for _ in range(num_patients)]
 
     all_data = {
@@ -214,9 +213,9 @@ def generate_all_simulated_data(num_patients: int = 3, num_doctors: int = 1) -> 
         
         # Assign notes, prescriptions, appointments to the first doctor for simplicity
         if doctors:
-            all_data["doctor_notes"].extend([n.model_dump(by_alias=True) for n in generate_fake_doctor_notes(patient.id, doctors.id)])
-            all_data["prescriptions"].extend([p.model_dump(by_alias=True) for p in generate_fake_prescriptions(patient.id, doctors.id)])
-            all_data["appointments"].extend([a.model_dump(by_alias=True) for a in generate_fake_appointments(patient.id, doctors.id)])
+            all_data["doctor_notes"].extend([n.model_dump(by_alias=True) for n in generate_fake_doctor_notes(patient.id, doctors[0].id)])
+            all_data["prescriptions"].extend([p.model_dump(by_alias=True) for p in generate_fake_prescriptions(patient.id, doctors[0].id)])
+            all_data["appointments"].extend([a.model_dump(by_alias=True) for a in generate_fake_appointments(patient.id, doctors[0].id)])
 
     return all_data
 

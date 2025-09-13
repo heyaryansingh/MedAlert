@@ -43,6 +43,7 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
     requires_image = False
     ai_summary = ""
     image_analysis_description = None
+    critical_alert_triggered = False
 
     try:
         # Fetch recent chat history for context
@@ -64,14 +65,16 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
             image_analysis_result = await analyze_image_with_gemini_vision(image_path)
             image_analysis_description = image_analysis_result['description']
             content_parts.insert(0, f"Patient uploaded an image. Image analysis: {image_analysis_description}. ")
-            # Also add the image itself for vision model if needed, though for text-only model, description is enough
-            # For gemini-pro, we primarily use text, so the description is key.
+            
+            # Check if image analysis indicates critical condition
+            if image_analysis_result.get('doctor_review_recommended', False) or image_analysis_result.get('severity_score', 0) > 7:
+                critical_alert_triggered = True
 
         # Start a chat session with the history
         chat_session = gemini_model.start_chat(history=conversation_history)
         
         # Send the latest patient message (and image analysis if present)
-        response = await chat_session.send_message_async(content_parts)
+        response = chat_session.send_message(content_parts)
 
         ai_response_text = response.text
 
@@ -87,12 +90,29 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
             if "upload a photo" in ai_response_lower and not any(kw in ai_response_lower for kw in ["wound", "rash", "burn", "cut", "bruise", "swelling"]):
                 ai_response_text += " Please upload a photo of the affected area for a better assessment."
 
+        # Check for critical symptoms in patient message
+        critical_keywords = ["severe pain", "chest pain", "difficulty breathing", "high fever", "unconscious", "bleeding heavily", "severe headache", "stroke", "heart attack", "emergency"]
+        if any(keyword in patient_message_lower for keyword in critical_keywords):
+            critical_alert_triggered = True
+            ai_response_text += " I'm concerned about your symptoms. Please contact your doctor immediately or go to the emergency room if symptoms worsen."
 
         # Generate a summary of the current interaction for the doctor
         full_interaction_text = f"Patient: {patient_message}\nAI: {ai_response_text}"
         if image_analysis_description:
             full_interaction_text += f"\nImage Analysis: {image_analysis_description}"
         ai_summary = await summarize_conversation_for_doctor(full_interaction_text)
+        
+        # If critical alert is triggered, create an alert in the database
+        if critical_alert_triggered:
+            alert = Alert(
+                patient_id=patient_id,
+                alert_type="critical_symptoms",
+                message="Critical symptoms detected in patient communication. Immediate doctor review recommended.",
+                severity="critical",
+                resolved=False,
+                timestamp=datetime.utcnow()
+            )
+            await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
         
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
@@ -119,7 +139,7 @@ async def summarize_conversation_for_doctor(conversation_text: str) -> str:
     Summarizes a given conversation text concisely for a doctor using Google Gemini model.
     """
     try:
-        response = await gemini_model.generate_content_async(
+        response = gemini_model.generate_content(
             f"Summarize the following patient-AI interaction concisely for a doctor, highlighting key symptoms, concerns, and AI actions: {conversation_text}"
         )
         summary = response.text
@@ -133,7 +153,7 @@ async def extract_symptoms_from_message(message: str) -> List[str]:
     Uses Gemini to extract a list of symptoms from a patient's message.
     """
     try:
-        response = await gemini_model.generate_content_async(
+        response = gemini_model.generate_content(
             f"From the following patient message, extract a comma-separated list of distinct symptoms mentioned. "
             f"If no symptoms are clearly mentioned, respond with 'None'.\nMessage: \"{message}\""
         )
@@ -263,7 +283,7 @@ async def analyze_image_with_gemini_vision(image_path: str) -> Dict[str, Any]:
             "Format the response as a JSON object with keys: 'wound_detected' (boolean), 'severity_score' (int, 1-10, or null), 'description' (string), 'doctor_review_recommended' (boolean)."
         ]
 
-        response = await gemini_vision_model.generate_content_async(prompt_parts)
+        response = gemini_vision_model.generate_content(prompt_parts)
         
         # Attempt to parse the response as JSON
         try:

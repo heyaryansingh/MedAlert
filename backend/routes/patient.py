@@ -4,9 +4,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
 from datetime import datetime
 import shutil
+import os
+from pydantic import BaseModel
 
 from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary, DoctorNote, Patient
-from backend.main import get_database # Assuming get_database is implemented in main.py
+from backend.dependencies import get_database
 from backend.ai.chatbot_logic import get_chatbot_response, summarize_conversation_for_doctor # Placeholder for AI functions
 
 router = APIRouter()
@@ -82,99 +84,78 @@ async def upload_image(
         )
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to record image upload in DB")
 
-@router.post("/patient/chatbot_message", response_model=ChatMessage)
-async def chatbot_message(
-    message: ChatMessage,
-    patient_id: PyObjectId = Depends(get_current_patient_id),
-    db: AsyncIOMotorClient = Depends(get_database)
-):
-    """
-    Receives a patient message (and optional image_url), processes it with AI, and responds.
-    Also logs the conversation.
-    """
-    message.patient_id = patient_id
-    message.timestamp = datetime.utcnow()
-    message.sender = "patient"
+class ChatbotMessageRequest(BaseModel):
+    patient_id: str
+    message: str
 
-    # Log patient message
-    await db.chat_messages.insert_one(message.model_dump(by_alias=True, exclude=["id"]))
-
+@router.post("/patient/chatbot_message")
+async def chatbot_message(request: ChatbotMessageRequest):
+    """
+    Receives a patient message and responds with AI-generated response.
+    Works in demo mode without database.
+    """
     try:
-        # Get AI response, image requirement, and AI summary
-        ai_response_text, requires_image, ai_summary = await get_chatbot_response(message.message, patient_id, db, message.image_url)
+        # Simple AI responses for demo
+        message_lower = request.message.lower()
+        
+        if any(word in message_lower for word in ["pain", "hurt", "ache"]):
+            ai_response = "I understand you're experiencing pain. Can you tell me more about where the pain is located and how severe it is on a scale of 1-10?"
+            requires_image = False
+        elif any(word in message_lower for word in ["wound", "cut", "injury", "scar"]):
+            ai_response = "I'd like to see the wound to better assess it. Could you please upload a photo of the affected area?"
+            requires_image = True
+        elif any(word in message_lower for word in ["fever", "temperature", "hot"]):
+            ai_response = "A fever can be concerning after surgery. What's your current temperature? Have you taken any medication for it?"
+            requires_image = False
+        elif any(word in message_lower for word in ["bleeding", "blood"]):
+            ai_response = "Bleeding after surgery needs immediate attention. Is the bleeding heavy or just spotting? Please contact your doctor immediately if it's heavy."
+            requires_image = False
+        elif any(word in message_lower for word in ["swelling", "swollen", "puffy"]):
+            ai_response = "Swelling is common after surgery but should be monitored. Where is the swelling located? Is it getting worse or better?"
+            requires_image = True
+        elif any(word in message_lower for word in ["nausea", "sick", "vomit"]):
+            ai_response = "Nausea can be a side effect of medications or anesthesia. Are you able to keep fluids down? When did this start?"
+            requires_image = False
+        elif any(word in message_lower for word in ["dizzy", "lightheaded", "faint"]):
+            ai_response = "Feeling dizzy can be concerning. Are you experiencing this when standing up or all the time? Have you been drinking enough fluids?"
+            requires_image = False
+        elif any(word in message_lower for word in ["sleep", "tired", "fatigue"]):
+            ai_response = "Fatigue is normal during recovery. How many hours of sleep are you getting? Are you able to rest comfortably?"
+            requires_image = False
+        else:
+            ai_response = "Thank you for sharing that with me. Can you tell me more about your symptoms? How are you feeling overall today?"
+            requires_image = False
+        
+        # Check for critical symptoms
+        critical_keywords = ["severe pain", "chest pain", "difficulty breathing", "high fever", "unconscious", "bleeding heavily", "severe headache", "stroke", "heart attack", "emergency"]
+        if any(keyword in message_lower for keyword in critical_keywords):
+            ai_response += " I'm concerned about your symptoms. Please contact your doctor immediately or go to the emergency room if symptoms worsen."
 
-        ai_message = ChatMessage(
-            patient_id=patient_id,
-            sender="ai",
-            message=ai_response_text,
-            ai_summary=ai_summary,
-            requires_image_upload=requires_image,
-            timestamp=datetime.utcnow(),
-            image_url=None # AI responses typically don't have images, but explicitly set to None
+        return JSONResponse(
+            status_code=200,
+            content={
+                "_id": "demo_message_id",
+                "sender": "ai",
+                "message": ai_response,
+                "timestamp": datetime.utcnow().isoformat(),
+                "requires_image_upload": requires_image,
+                "image_url": None
+            }
         )
-        new_ai_msg = await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
-        created_ai_message = await db.chat_messages.find_one({"_id": new_ai_msg.inserted_id})
         
-        if not created_ai_message:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve created AI message.")
-        
-        ai_message = ChatMessage(**created_ai_message)
-        print(f"AI Message successfully created and retrieved: {ai_message.model_dump_json()}")
     except Exception as e:
         print(f"Error in chatbot_message endpoint: {e}")
-        # Return a generic error message from AI if something goes wrong
-        ai_message = ChatMessage(
-            patient_id=patient_id,
-            sender="ai",
-            message="I'm sorry, I encountered an error while processing your request. Please try again.",
-            ai_summary=f"Error: {e}",
-            requires_image_upload=False,
-            timestamp=datetime.utcnow(),
-            image_url=None
+        return JSONResponse(
+            status_code=200,
+            content={
+                "_id": "error_message_id",
+                "sender": "ai",
+                "message": "I'm sorry, I'm having trouble processing your message right now. Please try again.",
+                "timestamp": datetime.utcnow().isoformat(),
+                "requires_image_upload": False,
+                "image_url": None
+            }
         )
-        # Attempt to save this error message to the chat history
-        await db.chat_messages.insert_one(ai_message.model_dump(by_alias=True, exclude=["id"]))
-        # Still return a 200 OK so frontend can display the error message
-
-    # Update or create ConversationSummary for the patient
-    existing_summary = await db.conversation_summaries.find_one({"patient_id": patient_id})
-    if existing_summary:
-        await db.conversation_summaries.update_one(
-            {"patient_id": patient_id},
-            {"$set": {"summary_text": ai_summary, "last_updated": datetime.utcnow()}}
-        )
-    else:
-        new_summary = ConversationSummary(
-            patient_id=patient_id,
-            summary_text=ai_summary,
-            last_updated=datetime.utcnow()
-        )
-        await db.conversation_summaries.insert_one(new_summary.model_dump(by_alias=True, exclude=["id"]))
-
-    # If AI requests an image, create an alert for the patient
-    if requires_image:
-        alert = Alert(
-            patient_id=patient_id,
-            alert_type="image_request",
-            message="The AI chatbot has requested an image related to your symptoms. Please upload one.",
-            severity="medium",
-            resolved=False,
-            timestamp=datetime.utcnow(),
-            chat_message_id=ai_message.id # Link alert to the AI message that requested the image
-        )
-        await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
-
-    return JSONResponse(
-        status_code=200,
-        content={
-            "_id": str(ai_message.id),
-            "sender": ai_message.sender,
-            "message": ai_message.message,
-            "timestamp": ai_message.timestamp.isoformat(),
-            "requires_image_upload": ai_message.requires_image_upload,
-            "image_url": ai_message.image_url # This will be None for AI messages, but included for consistency
-        }
-    )
 
 @router.get("/patient/get_alerts", response_model=List[Alert])
 async def get_alerts(
@@ -188,31 +169,32 @@ async def get_alerts(
     alerts = [Alert(**alert) async for alert in alerts_cursor]
     return alerts
 
-@router.get("/patient/chat_history", response_model=List[ChatMessage])
-async def get_patient_chat_history(
-    patient_id: PyObjectId = Depends(get_current_patient_id),
-    db: AsyncIOMotorClient = Depends(get_database)
-):
+@router.get("/patient/chat_history")
+async def get_patient_chat_history():
     """
-    Returns the chat history for the current patient.
+    Returns mock chat history for demo purposes.
     """
-    chat_messages_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
-    chat_messages = []
-    async for m in chat_messages_cursor:
-        # Ensure sender is "ai" for AI messages, even if old entries used "model"
-        if m.get('sender') == 'model':
-            m['sender'] = 'ai'
-        chat_messages.append(ChatMessage(**m))
-    return chat_messages
+    return [
+        {
+            "_id": "demo_1",
+            "sender": "ai",
+            "message": "Hello! I am MedAlert AI. How are you feeling today?",
+            "timestamp": datetime.utcnow().isoformat(),
+            "image_url": None
+        }
+    ]
 
 @router.post("/patient/generate_notes")
 async def generate_doctor_notes(
-    patient_id: PyObjectId = Depends(get_current_patient_id),
+    request: ChatbotMessageRequest,
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
     Generates AI notes for the doctor based on the patient's chat history.
+    This is called when the patient clicks "Checkup Done".
     """
+    patient_id = PyObjectId(request.patient_id)
+    
     # Fetch all chat messages for the patient
     chat_history_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
     chat_history = [ChatMessage(**msg) async for msg in chat_history_cursor]
@@ -245,6 +227,18 @@ async def generate_doctor_notes(
     )
 
     new_note = await db.doctor_notes.insert_one(doctor_note.model_dump(by_alias=True, exclude=["id"]))
+    
+    # Create a notification alert for the doctor
+    notification_alert = Alert(
+        patient_id=patient_id,
+        alert_type="patient_checkup_complete",
+        message=f"Patient {patient.get('name', 'Unknown')} has completed their checkup. New AI-generated notes are available for review.",
+        severity="medium",
+        resolved=False,
+        timestamp=datetime.utcnow(),
+        doctor_id=doctor_id
+    )
+    await db.alerts.insert_one(notification_alert.model_dump(by_alias=True, exclude=["id"]))
     
     if new_note.inserted_id:
         return JSONResponse(

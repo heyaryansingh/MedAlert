@@ -54,7 +54,7 @@ const PatientChatbot: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ patient_id: patientId }),
+        body: JSON.stringify({ patient_id: patientId, message: "Checkup completed" }),
       });
 
       if (response.ok) {

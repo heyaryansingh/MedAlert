@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from backend.models import Patient, Doctor, User
-from backend.main import get_database
+from backend.dependencies import get_database
 
 router = APIRouter()
 

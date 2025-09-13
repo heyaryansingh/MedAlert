@@ -4,7 +4,16 @@ REM In batch, this is typically handled by checking ERRORLEVEL after each comman
 
 echo Starting MedAlert AI setup...
 
-REM 1. Populate MongoDB with simulated data
+REM 1. Install Python dependencies
+echo Installing Python dependencies...
+cd backend
+pip install -r requirements.txt
+IF %ERRORLEVEL% NEQ 0 (
+    echo Error installing Python dependencies. Exiting.
+    exit /b %ERRORLEVEL%
+)
+
+REM 2. Populate MongoDB with simulated data
 echo Populating MongoDB with simulated data...
 python -m backend.utils.data_generator
 IF %ERRORLEVEL% NEQ 0 (
@@ -12,18 +21,16 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b %ERRORLEVEL%
 )
 
-REM 2. Start the FastAPI backend
+REM 3. Start the FastAPI backend
 echo Starting FastAPI backend...
-cd backend
 start /B uvicorn main:app --reload --port 8000
-set BACKEND_PID=!
 cd ..
 IF %ERRORLEVEL% NEQ 0 (
     echo Error starting backend. Exiting.
     exit /b %ERRORLEVEL%
 )
 
-REM 3. Start the React frontend
+REM 4. Start the React frontend
 echo Starting React frontend...
 cd frontend
 call npm install
@@ -32,7 +39,6 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b %ERRORLEVEL%
 )
 start /B npm run dev
-set FRONTEND_PID=!
 cd ..
 IF %ERRORLEVEL% NEQ 0 (
     echo Error starting frontend. Exiting.
