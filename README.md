@@ -8,7 +8,7 @@ MedAlert AI is a patient monitoring and doctor support system designed for post 
 
 In the past, one of my own family members was in a car crash and needed surgery on her femur. A month after the surgery due to repeated complaints, doctors discovered that the dull pain she felt at times was an allergic reaction to the tungsten implant she got. She has had 11 surgeries (each with their own mishaps) since then and two total hip replacements to go back to "normal". Now, my mom walks just fine, without a limp and without constant pain. But nobody else should have to suffer from post-operational neglect. I made MedAlert to help fight this glaring issue in modern healthcare.
 
-
+# Features
 - **Redesigned Patient Dashboard:** A clean, intuitive chat-based interface for patients to easily communicate symptoms, log well-being updates, and interact with the AI.
 - **Enhanced Interactive AI Chatbot:** The AI chatbot is designed to be straightforward and focused on gathering precise patient details without obfuscation. It intelligently guides patients through symptom input, asks targeted follow-up questions, and explicitly requests image uploads when visible conditions (like wounds, rashes, burns, etc.) are mentioned for better assessment. The AI's responses are immediately displayed on the patient's screen.
 - **Multiple Chat Sessions:** The system supports multiple chat sessions, allowing patients to initiate new conversations at different times of the day, providing a continuous log of their health journey.
@@ -47,7 +47,7 @@ In the past, one of my own family members was in a car crash and needed surgery 
 
 ## Running the Demo
 
-1.  **Load Simulated Data:** Navigate to MedAlert copied repo folder and run .\start_medalert.bat
+1.  **Load Simulated Data:** Requirements can be found in requirements.txt and downloaded with pip. Navigate to MedAlert copied repo folder and run .\start_medalert.bat to open the webapp.
 2.  **Patient Interaction (via Redesigned Dashboard):**
     *   Access the patient UI in your browser.
     *   Interact with the AI chatbot to report symptoms, ask questions, and provide updates on your well-being.
