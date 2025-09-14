@@ -8,6 +8,7 @@ import uvicorn
 import os
 import base64
 import json
+import uuid
 
 app = FastAPI(title="MedAlert AI Chatbot")
 
@@ -21,6 +22,10 @@ app.add_middleware(
 )
 
 class ChatRequest(BaseModel):
+    patient_id: str
+    message: str
+
+class ChatMessage(BaseModel):
     patient_id: str
     message: str
 
@@ -40,6 +45,12 @@ conversations = {}
 doctor_summaries = {}
 patient_notifications = {}
 
+# New data structures for chat sessions
+chat_sessions = {}  # {patient_id: [list of chat sessions]}
+session_summaries = {}  # {session_id: summary}
+cumulative_summaries = {}  # {patient_id: cumulative summary}
+doctor_actions = []  # List of all doctor actions taken
+
 # Enhanced AI chatbot logic with conversation memory
 def get_ai_response(message: str, conversation_history: list = None) -> tuple[str, bool, str]:
     """Returns AI response, whether image is needed, and follow-up question"""
@@ -49,8 +60,22 @@ def get_ai_response(message: str, conversation_history: list = None) -> tuple[st
         conversation_history = []
     
     # Analyze conversation context - look at more messages for better memory
-    recent_messages = [msg.get('message', '').lower() for msg in conversation_history[-10:]]
+    recent_messages = [msg.get('message', '').lower() for msg in conversation_history[-15:]]
     recent_context = ' '.join(recent_messages)
+    
+    # Track what has been discussed to avoid repetition
+    discussed_topics = {
+        'pain_level': any(word in recent_context for word in ["scale", "1-10", "rate", "pain level", "pain scale"]),
+        'pain_location': any(word in recent_context for word in ["where", "location", "pain in", "hurt in"]),
+        'pain_type': any(word in recent_context for word in ["sharp", "dull", "throbbing", "burning", "type of pain"]),
+        'fever': any(word in recent_context for word in ["fever", "temperature", "hot", "thermometer"]),
+        'bleeding': any(word in recent_context for word in ["bleeding", "blood", "bleed", "spotting"]),
+        'swelling': any(word in recent_context for word in ["swelling", "swollen", "puffy", "inflamed"]),
+        'nausea': any(word in recent_context for word in ["nausea", "sick", "vomit", "nauseous"]),
+        'dizziness': any(word in recent_context for word in ["dizzy", "lightheaded", "faint", "dizziness"]),
+        'fatigue': any(word in recent_context for word in ["tired", "fatigue", "exhausted", "weak"]),
+        'medication': any(word in recent_context for word in ["medication", "medicine", "pills", "drugs", "taking"])
+    }
     
     # Extract key information from current message
     current_symptoms = extract_symptoms(message_lower)
@@ -61,13 +86,13 @@ def get_ai_response(message: str, conversation_history: list = None) -> tuple[st
     if is_emergency_situation(message_lower, recent_context):
         return generate_emergency_response(message_lower), False, "emergency"
     
-    # Check if we've already asked about pain level in recent conversation
-    if any(word in message_lower for word in ["pain", "hurt", "ache", "sore", "throbbing", "sharp", "dull", "burning", "stabbing"]):
-        return handle_pain_assessment(message_lower, recent_context, pain_indicators, severity_indicators)
-    
     # Check if this is a pain level response (contains numbers 1-10) and we've been discussing pain
     if any(word in message_lower for word in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]) and ("pain" in recent_context or "hurt" in recent_context or "scale" in recent_context or "1-10" in recent_context or "rate" in recent_context):
         return handle_pain_level_response(message_lower, recent_context)
+    
+    # Pain assessment with better repetition avoidance
+    if any(word in message_lower for word in ["pain", "hurt", "ache", "sore", "throbbing", "sharp", "dull", "burning", "stabbing"]):
+        return handle_pain_assessment_improved(message_lower, recent_context, pain_indicators, severity_indicators, discussed_topics)
     
     # Wound/injury assessment
     if any(word in message_lower for word in ["wound", "cut", "injury", "scar", "bruise", "incision", "stitches", "surgical site"]):
@@ -220,6 +245,43 @@ def handle_pain_level_response(message: str, context: str) -> tuple[str, bool, s
     
     return generate_engaging_response(message, context), False, "general_inquiry"
 
+def handle_pain_assessment_improved(message: str, context: str, pain_info: dict, severity: str, discussed_topics: dict) -> tuple[str, bool, str]:
+    """Handle pain assessment with improved repetition avoidance"""
+    
+    # If we've already discussed pain level, don't ask again
+    if discussed_topics['pain_level']:
+        # Move to other aspects of pain
+        if not discussed_topics['pain_type']:
+            return "Thank you for the pain information. What type of pain are you experiencing - is it sharp, dull, throbbing, burning, or something else? Is it constant or does it come and go?", False, "pain_type"
+        elif not discussed_topics['pain_location']:
+            return "Can you tell me where exactly this pain is located? This helps me understand what might be causing it.", False, "pain_location"
+        else:
+            return "Thank you for sharing that information about your pain. How are you managing it? Are you taking any pain medication, and is it helping?", False, "pain_management"
+    
+    # If we have pain level from extraction, acknowledge and move forward
+    if pain_info["level"]:
+        if pain_info["level"] >= 7:
+            return f"I'm concerned about your pain level of {pain_info['level']}/10. This is quite high and needs attention. What type of pain is it, and are you taking any pain medication?", False, "pain_type"
+        elif pain_info["level"] >= 4:
+            return f"Thank you for that information. A pain level of {pain_info['level']}/10 is moderate and should be managed. What type of pain are you experiencing, and what makes it better or worse?", False, "pain_management"
+        else:
+            return f"Good to know your pain is at a {pain_info['level']}/10 level. Even mild pain should be monitored. What type of pain is it, and is it getting better or worse?", False, "pain_monitoring"
+    
+    # If we have location but no level and haven't asked about level yet
+    if pain_info["location"] and not discussed_topics['pain_level']:
+        return f"I understand you're experiencing pain in your {pain_info['location']}. On a scale of 1-10, where 1 is no pain and 10 is the worst pain imaginable, how would you rate this pain?", False, "pain_level"
+    
+    # If we have pain type but no other info
+    if pain_info["type"] and not discussed_topics['pain_level']:
+        return f"I understand you're experiencing {pain_info['type']} pain. Can you tell me where this pain is located, and on a scale of 1-10, how severe is it?", False, "pain_location"
+    
+    # Initial pain assessment - only ask if we haven't discussed it yet
+    if not discussed_topics['pain_level']:
+        return "I'm sorry you're experiencing pain. To help me understand your situation better, can you tell me where the pain is located and how severe it is on a scale of 1-10?", False, "pain_assessment"
+    else:
+        # We've already discussed pain, move to other topics
+        return "Thank you for sharing that information about your pain. How are you feeling overall today? Are there any other symptoms or concerns you'd like to discuss?", False, "general_assessment"
+
 def handle_pain_assessment(message: str, context: str, pain_info: dict, severity: str) -> tuple[str, bool, str]:
     """Handle pain assessment with detailed follow-up"""
     
@@ -253,8 +315,8 @@ def handle_pain_assessment(message: str, context: str, pain_info: dict, severity
 
 def handle_wound_assessment(message: str, context: str) -> tuple[str, bool, str]:
     """Handle wound/injury assessment"""
-    if "photo" in context or "image" in context or "picture" in context:
-        return "Thank you for uploading the image. I can see the wound area you're concerned about. Based on what I can observe, I'd like to ask a few follow-up questions:\n\n• Is there any redness, warmth, or unusual discharge around the wound?\n• How does it feel when you touch it?\n• Is the wound getting better, worse, or staying the same?\n• Are you experiencing any fever or increased pain in the area?", False, "wound_followup"
+    if "photo" in context or "image" in context or "picture" in context or "uploaded" in context:
+        return "I see you have uploaded an image. I will forward it to the doctor. Please give a description of it for your doctor.", False, "wound_followup"
     else:
         return "I'd like to assess your wound properly to provide the best guidance. Could you please upload a clear photo of the affected area? Make sure the lighting is good and the wound is clearly visible.\n\nWhile you prepare the photo, can you tell me:\n• How long ago did this wound occur?\n• Is it getting better, worse, or staying the same?\n• Are you experiencing any redness, warmth, or unusual discharge?", True, "wound_image"
 
@@ -338,7 +400,7 @@ async def login(request: LoginRequest):
             return JSONResponse(content={
                 "success": True,
                 "user_type": "patient",
-                "user_id": "patient_123",
+                "user_id": "demo_patient_123",
                 "name": "John Doe"
             })
     elif request.user_type == "doctor":
@@ -637,14 +699,26 @@ def generate_conversation_summary(conversation_history: list) -> str:
 async def get_patients():
     """Get list of patients with summaries"""
     patients = []
-    for patient_id, summary_data in doctor_summaries.items():
-        patients.append({
-            "patient_id": patient_id,
-            "name": f"Patient {patient_id}",
-            "last_checkup": summary_data["timestamp"],
-            "status": summary_data["status"],
-            "conversation_count": summary_data["conversation_count"]
-        })
+    
+    # Get patients from chat sessions
+    for patient_id, sessions_list in chat_sessions.items():
+        if sessions_list:  # Only include patients with sessions
+            # Get the most recent session
+            latest_session = max(sessions_list, key=lambda x: x["created_at"])
+            
+            # Count total sessions and messages
+            total_sessions = len(sessions_list)
+            total_messages = sum(session.get("message_count", 0) for session in sessions_list)
+            
+            patients.append({
+                "patient_id": patient_id,
+                "name": f"John Doe",  # Use actual patient name
+                "last_checkup": latest_session["created_at"],
+                "status": "Active" if total_messages > 0 else "New",
+                "conversation_count": total_sessions,
+                "total_messages": total_messages
+            })
+    
     return patients
 
 @app.get("/api/doctor/patient_summary/{patient_id}")
@@ -674,56 +748,52 @@ async def mark_patient_reviewed(patient_id: str):
     else:
         return {"success": False, "message": "Patient not found"}
 
+@app.get("/api/doctor/actions")
+async def get_doctor_actions():
+    """Get all doctor actions taken"""
+    return doctor_actions
+
 @app.post("/api/doctor/action")
 async def doctor_action(request: DoctorActionRequest):
     """Doctor actions: prescribe medication, suggest appointment, or send question"""
     try:
-        # Create notification for patient
-        notification = {
-            "id": f"notif_{datetime.now().timestamp()}",
+        action_id = str(uuid.uuid4())
+        timestamp = datetime.now().isoformat()
+        
+        # Store the doctor action
+        action = {
+            "action_id": action_id,
             "patient_id": request.patient_id,
-            "doctor_id": request.doctor_id,
             "action_type": request.action_type,
             "content": request.content,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
+            "patient_name": "John Doe"  # In a real app, this would come from a database
+        }
+        doctor_actions.append(action)
+        
+        # Also add to patient notifications
+        notification = {
+            "id": action_id,
+            "action_type": request.action_type,
+            "content": request.content,
+            "timestamp": timestamp,
             "status": "unread"
         }
         
-        # Store notification
         if request.patient_id not in patient_notifications:
             patient_notifications[request.patient_id] = []
         patient_notifications[request.patient_id].append(notification)
         
-        # Generate appropriate message based on action type
-        if request.action_type == "prescription":
-            message = f"📋 **New Prescription from Dr. Smith**\n\n{request.content}\n\nPlease follow the medication instructions carefully and contact us if you have any questions."
-        elif request.action_type == "appointment":
-            message = f"📅 **Appointment Recommendation from Dr. Smith**\n\n{request.content}\n\nPlease contact our office to schedule this appointment."
-        elif request.action_type == "question":
-            message = f"❓ **Question from Dr. Smith**\n\n{request.content}\n\nPlease respond to this question when convenient."
-        else:
-            message = f"📝 **Message from Dr. Smith**\n\n{request.content}"
-        
-        return JSONResponse(content={
-            "success": True,
-            "message": "Action sent to patient successfully",
-            "notification": notification,
-            "patient_message": message
-        })
+        return {"success": True, "message": f"{request.action_type.title()} sent successfully", "action_id": action_id}
     except Exception as e:
-        return JSONResponse(content={
-            "success": False,
-            "message": "Failed to send action to patient",
-            "error": str(e)
-        }, status_code=500)
+        return {"success": False, "message": "Failed to send action to patient", "error": str(e)}
 
 @app.get("/api/patient/notifications/{patient_id}")
 async def get_patient_notifications(patient_id: str):
     """Get notifications for a specific patient"""
     notifications = patient_notifications.get(patient_id, [])
-    # Return only unread notifications
-    unread_notifications = [n for n in notifications if n["status"] == "unread"]
-    return unread_notifications
+    # Return all notifications (both read and unread)
+    return notifications
 
 @app.post("/api/patient/mark_notification_read/{notification_id}")
 async def mark_notification_read(notification_id: str, patient_id: str = "demo_patient_123"):
@@ -734,6 +804,286 @@ async def mark_notification_read(notification_id: str, patient_id: str = "demo_p
                 notification["status"] = "read"
                 return {"success": True, "message": "Notification marked as read"}
     return {"success": False, "message": "Notification not found"}
+
+# Chat Session Management Endpoints
+@app.get("/api/patient/chat_sessions/{patient_id}")
+async def get_patient_chat_sessions(patient_id: str):
+    """Get all chat sessions for a patient"""
+    if patient_id not in chat_sessions:
+        chat_sessions[patient_id] = []
+    
+    sessions = chat_sessions[patient_id]
+    # Sort by creation time (most recent first)
+    sessions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    return sessions
+
+@app.post("/api/patient/create_chat_session/{patient_id}")
+async def create_new_chat_session(patient_id: str):
+    """Create a new chat session for a patient"""
+    session_id = f"session_{uuid.uuid4().hex[:8]}"
+    timestamp = datetime.now().isoformat()
+    
+    new_session = {
+        "session_id": session_id,
+        "patient_id": patient_id,
+        "title": f"Chat Session - {datetime.now().strftime('%B %d, %Y at %I:%M %p')}",
+        "created_at": timestamp,
+        "last_message_at": timestamp,
+        "message_count": 0,
+        "status": "active"
+    }
+    
+    if patient_id not in chat_sessions:
+        chat_sessions[patient_id] = []
+    
+    chat_sessions[patient_id].append(new_session)
+    
+    # Initialize empty conversation for this session
+    conversations[session_id] = []
+    
+    return {"success": True, "session": new_session}
+
+@app.get("/api/patient/chat_session/{session_id}")
+async def get_chat_session_messages(session_id: str):
+    """Get messages for a specific chat session"""
+    if session_id in conversations:
+        return conversations[session_id]
+    else:
+        return []
+
+@app.post("/api/patient/chat_session/{session_id}/message")
+async def send_message_to_session(session_id: str, request: ChatMessage):
+    """Send a message to a specific chat session"""
+    patient_id = request.patient_id
+    message = request.message
+    
+    # Initialize conversation if it doesn't exist
+    if session_id not in conversations:
+        conversations[session_id] = []
+    
+    # Add user message
+    user_message = {
+        "_id": f"user_{datetime.now().timestamp()}",
+        "sender": "patient",
+        "message": message,
+        "timestamp": datetime.now().isoformat(),
+        "session_id": session_id
+    }
+    conversations[session_id].append(user_message)
+    
+    # Get AI response
+    conversation_history = conversations[session_id]
+    ai_response, requires_image, follow_up_type = get_ai_response(message, conversation_history)
+    
+    # Add AI response
+    ai_message = {
+        "_id": f"ai_{datetime.now().timestamp()}",
+        "sender": "ai",
+        "message": ai_response,
+        "timestamp": datetime.now().isoformat(),
+        "requires_image_upload": requires_image,
+        "image_url": None,
+        "follow_up_type": follow_up_type,
+        "session_id": session_id
+    }
+    conversations[session_id].append(ai_message)
+    
+    # Update session metadata
+    if patient_id in chat_sessions:
+        for session in chat_sessions[patient_id]:
+            if session["session_id"] == session_id:
+                session["last_message_at"] = datetime.now().isoformat()
+                session["message_count"] = len(conversations[session_id])
+                break
+    
+    return ai_message
+
+@app.post("/api/patient/generate_session_summary/{session_id}")
+async def generate_session_summary(session_id: str):
+    """Generate AI summary for a specific chat session"""
+    if session_id not in conversations:
+        return {"error": "Session not found"}
+    
+    conversation_history = conversations[session_id]
+    summary = generate_conversation_summary(conversation_history)
+    
+    # Store the summary
+    session_summaries[session_id] = {
+        "session_id": session_id,
+        "summary": summary,
+        "generated_at": datetime.now().isoformat(),
+        "message_count": len(conversation_history)
+    }
+    
+    return {"success": True, "summary": summary}
+
+@app.post("/api/patient/generate_cumulative_summary/{patient_id}")
+async def generate_cumulative_summary(patient_id: str):
+    """Generate cumulative AI summary for all patient sessions"""
+    if patient_id not in chat_sessions:
+        return {"error": "No sessions found for patient"}
+    
+    all_conversations = []
+    session_summaries_list = []
+    
+    # Collect all conversations and summaries for this patient
+    for session in chat_sessions[patient_id]:
+        session_id = session["session_id"]
+        if session_id in conversations:
+            all_conversations.extend(conversations[session_id])
+        if session_id in session_summaries:
+            session_summaries_list.append(session_summaries[session_id])
+    
+    # Generate comprehensive summary
+    if all_conversations:
+        cumulative_summary = generate_comprehensive_patient_summary(all_conversations, session_summaries_list)
+        
+        # Store cumulative summary
+        cumulative_summaries[patient_id] = {
+            "patient_id": patient_id,
+            "summary": cumulative_summary,
+            "generated_at": datetime.now().isoformat(),
+            "total_sessions": len(chat_sessions[patient_id]),
+            "total_messages": len(all_conversations)
+        }
+        
+        return {"success": True, "summary": cumulative_summary}
+    
+    return {"error": "No conversation data found"}
+
+@app.get("/api/doctor/patient_sessions/{patient_id}")
+async def get_patient_sessions_for_doctor(patient_id: str):
+    """Get all chat sessions for a patient (doctor view)"""
+    if patient_id not in chat_sessions:
+        return []
+    
+    sessions_with_summaries = []
+    for session in chat_sessions[patient_id]:
+        session_id = session["session_id"]
+        session_data = session.copy()
+        
+        # Add summary if available
+        if session_id in session_summaries:
+            session_data["summary"] = session_summaries[session_id]["summary"]
+        
+        # Add conversation preview
+        if session_id in conversations and conversations[session_id]:
+            last_messages = conversations[session_id][-3:]  # Last 3 messages
+            session_data["preview"] = [msg["message"][:100] + "..." if len(msg["message"]) > 100 else msg["message"] for msg in last_messages]
+            
+            # Add full conversation messages
+            session_data["messages"] = conversations[session_id]
+        
+        sessions_with_summaries.append(session_data)
+    
+    return sessions_with_summaries
+
+@app.get("/api/doctor/cumulative_summary/{patient_id}")
+async def get_cumulative_summary_for_doctor(patient_id: str):
+    """Get cumulative summary for a patient (doctor view)"""
+    if patient_id in cumulative_summaries:
+        return cumulative_summaries[patient_id]
+    else:
+        # Generate if not exists
+        result = await generate_cumulative_summary(patient_id)
+        if result.get("success"):
+            return cumulative_summaries[patient_id]
+        return {"error": "No data available"}
+
+def generate_comprehensive_patient_summary(all_conversations: list, session_summaries: list) -> str:
+    """Generate a comprehensive summary across all patient sessions"""
+    if not all_conversations:
+        return "No conversation data available."
+    
+    # Extract comprehensive information across all sessions
+    all_symptoms = []
+    all_pain_levels = []
+    all_medications = []
+    all_concerns = []
+    emergency_flags = []
+    images_count = 0
+    
+    for msg in all_conversations:
+        if msg.get('sender') == 'patient':
+            message = msg.get('message', '').lower()
+            
+            # Extract symptoms across all sessions
+            if any(word in message for word in ['pain', 'hurt', 'ache', 'fever', 'bleeding', 'swelling', 'nausea', 'dizzy', 'tired']):
+                all_symptoms.append(msg.get('message', ''))
+            
+            # Extract pain levels
+            if any(word in message for word in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']):
+                if 'pain' in message or 'hurt' in message:
+                    all_pain_levels.append(msg.get('message', ''))
+            
+            # Extract medications
+            if any(word in message for word in ['medication', 'medicine', 'pills', 'prescription']):
+                all_medications.append(msg.get('message', ''))
+            
+            # Extract concerns
+            if any(word in message for word in ['concern', 'worried', 'scared', 'problem']):
+                all_concerns.append(msg.get('message', ''))
+            
+            # Emergency flags
+            if any(word in message for word in ['severe', 'emergency', 'can\'t breathe', 'chest pain', 'heavy bleeding']):
+                emergency_flags.append(msg.get('message', ''))
+        
+        if msg.get('image_url'):
+            images_count += 1
+    
+    # Build comprehensive summary
+    summary_parts = []
+    
+    summary_parts.append("**COMPREHENSIVE PATIENT ASSESSMENT - ALL SESSIONS**")
+    summary_parts.append(f"Complete medical assessment conducted across {len(session_summaries)} consultation sessions from {datetime.now().strftime('%B %d, %Y')}. This comprehensive evaluation encompasses {len(all_conversations)} total interactions, providing a thorough longitudinal overview of the patient's post-surgical recovery and overall health status.")
+    
+    if all_symptoms:
+        summary_parts.append(f"\n**SYMPTOM PROGRESSION AND PATTERNS:**")
+        summary_parts.append(f"Throughout the consultation period, the patient reported various symptoms requiring medical attention. Key symptoms and their progression include: {', '.join(all_symptoms[:10])}. The patient demonstrated consistent engagement with the assessment process across multiple sessions, providing detailed responses that enable comprehensive tracking of symptom evolution and treatment effectiveness.")
+    
+    if all_pain_levels:
+        summary_parts.append(f"\n**PAIN MANAGEMENT ASSESSMENT:**")
+        summary_parts.append(f"Pain evaluation was conducted systematically across multiple sessions using standardized 1-10 scales. Reported pain levels throughout the treatment period: {', '.join(all_pain_levels[:5])}. This longitudinal pain assessment reveals important patterns in pain management effectiveness, medication response, and overall recovery trajectory. The data supports evidence-based adjustments to pain management protocols.")
+    
+    if emergency_flags:
+        summary_parts.append(f"\n**CRITICAL MEDICAL CONCERNS:**")
+        summary_parts.append(f"⚠️ **URGENT ATTENTION REQUIRED:** Critical symptoms identified across sessions: {', '.join(emergency_flags[:3])}. These concerning presentations require immediate medical evaluation and potentially urgent intervention. The pattern of emergency symptoms suggests the need for enhanced monitoring protocols and possible escalation of care.")
+    
+    if all_medications:
+        summary_parts.append(f"\n**MEDICATION MANAGEMENT AND ADHERENCE:**")
+        summary_parts.append(f"Comprehensive medication assessment revealed important information about treatment adherence and therapeutic response: {', '.join(all_medications[:5])}. The patient's medication management patterns, side effect reports, and adherence levels provide crucial data for optimizing therapeutic regimens and ensuring treatment effectiveness.")
+    
+    if images_count > 0:
+        summary_parts.append(f"\n**VISUAL DOCUMENTATION AND MONITORING:**")
+        summary_parts.append(f"The patient provided {images_count} visual documentation(s) across sessions for comprehensive assessment of physical findings. These images enabled thorough evaluation of wound healing, swelling progression, and other visible clinical indicators. Visual monitoring has been essential for tracking recovery progress and identifying potential complications.")
+    
+    if all_concerns:
+        summary_parts.append(f"\n**PSYCHOLOGICAL AND EMOTIONAL ASSESSMENT:**")
+        summary_parts.append(f"Patient concerns and emotional well-being were assessed throughout the consultation period: {', '.join(all_concerns[:5])}. The longitudinal assessment reveals important patterns in patient anxiety, coping mechanisms, and psychological adaptation to the recovery process. This information is crucial for providing holistic, patient-centered care.")
+    
+    # Session-specific insights
+    if session_summaries:
+        summary_parts.append(f"\n**SESSION-SPECIFIC CLINICAL INSIGHTS:**")
+        for i, session_summary in enumerate(session_summaries[:3], 1):
+            summary_parts.append(f"Session {i}: Key clinical findings and patient responses were documented, contributing to the comprehensive understanding of the patient's condition and treatment response.")
+    
+    summary_parts.append(f"\n**COMPREHENSIVE CLINICAL RECOMMENDATIONS:**")
+    if emergency_flags:
+        summary_parts.append("Given the critical symptoms identified across multiple sessions, immediate comprehensive medical evaluation is strongly recommended. The patient requires urgent assessment by the medical team within 24 hours, with consideration for emergency intervention if symptoms persist or worsen. Continuous monitoring protocols should be implemented immediately.")
+    else:
+        summary_parts.append("Based on the comprehensive longitudinal assessment, the patient demonstrates overall positive progress through post-surgical recovery. Continued systematic monitoring is recommended, with particular attention to symptom patterns, pain management optimization, and functional recovery metrics. Regular follow-up appointments should be maintained to ensure continued progress.")
+    
+    summary_parts.append(f"\n**COMPREHENSIVE CARE PLAN:**")
+    summary_parts.append("1. Conduct thorough review of all session findings with the multidisciplinary healthcare team")
+    summary_parts.append("2. Implement evidence-based interventions based on comprehensive symptom and progress analysis")
+    summary_parts.append("3. Establish enhanced monitoring protocols based on identified patterns and risk factors")
+    summary_parts.append("4. Coordinate specialized consultations as indicated by the comprehensive assessment")
+    summary_parts.append("5. Develop individualized patient education plan based on identified knowledge gaps and concerns")
+    summary_parts.append("6. Schedule appropriate follow-up intervals based on clinical complexity and patient needs")
+    summary_parts.append("7. Ensure patient has comprehensive emergency protocols and clear escalation pathways")
+    
+    return "\n".join(summary_parts)
 
 if __name__ == "__main__":
     print("Starting MedAlert AI Chatbot...")

@@ -204,6 +204,7 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            max-height: calc(100vh - 200px);
             background: #f8f9fa;
         }
         
@@ -348,6 +349,223 @@
             transform: translateY(-2px);
         }
         
+        /* Patient Dashboard Styles */
+        .patient-dashboard {
+            display: flex;
+            height: 100vh;
+            background: white;
+        }
+        
+        .patient-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0;
+        }
+        
+        .patient-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+        
+        .patient-tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+        
+        .patient-tab.active {
+            background: white;
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+        
+        .patient-tab-content {
+            display: none;
+            flex: 1;
+            height: calc(100vh - 60px);
+        }
+        
+        .patient-tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .actions-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .actions-header h3 {
+            margin: 0 0 5px 0;
+            color: #495057;
+        }
+        
+        .actions-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .actions-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .action-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .action-item.prescription {
+            border-left: 4px solid #28a745;
+        }
+        
+        .action-item.appointment {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .action-item.question {
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .action-type {
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .action-type.prescription {
+            color: #28a745;
+        }
+        
+        .action-type.appointment {
+            color: #ffc107;
+        }
+        
+        .action-type.question {
+            color: #17a2b8;
+        }
+        
+        .action-timestamp {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .action-content {
+            color: #495057;
+            line-height: 1.5;
+        }
+        
+        .chat-sessions-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: white;
+        }
+        
+        .sidebar-header h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .new-chat-btn:hover {
+            background: #0056b3;
+        }
+        
+        .sessions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .session-item {
+            padding: 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .session-item:hover {
+            background: #f0f8ff;
+            border-color: #007bff;
+        }
+        
+        .session-item.active {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+        
+        .session-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .session-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .session-item.active .session-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .main-chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: white;
+        }
+        
         /* Doctor Dashboard Styles */
         .doctor-dashboard {
             width: 100%;
@@ -355,6 +573,90 @@
             display: flex;
             flex-direction: column;
             background: white;
+        }
+        
+        .doctor-dashboard-layout {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .patients-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-dashboard-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .patient-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: white;
+        }
+        
+        .session-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0 20px;
+            overflow-x: auto;
+        }
+        
+        .session-tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        
+        .session-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .session-tab.active {
+            background: white;
+            border-bottom-color: #007bff;
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        .session-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            margin-top: 100px;
+            color: #6c757d;
+        }
+        
+        .cumulative-summary {
+            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            background: #f8f9fa;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cumulative-summary-content {
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .dashboard-content {
@@ -598,6 +900,245 @@
             background: #5a32a3;
         }
         
+        .send-to-doctor-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        
+        .doctor-actions-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+        }
+        
+        .doctor-actions-section h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        
+        .doctor-actions-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .doctor-action-btn {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 180px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .doctor-action-btn.prescription {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .doctor-action-btn.appointment {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+        
+        .doctor-action-btn.question {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+        }
+        
+        /* Full Conversation Styles */
+        .full-conversation {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+        }
+        
+        .full-conversation h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        
+        .conversation-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .conversation-message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .conversation-message.patient {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        
+        .conversation-message.ai {
+            background: #f3e5f5;
+            border-left-color: #9c27b0;
+        }
+        
+        .conversation-message .message-sender {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        
+        .conversation-message .message-content {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        
+        .conversation-message .message-time {
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        /* Improved Layout and Spacing */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .dashboard-layout {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 120px);
+        }
+        
+        .sidebar {
+            width: 300px;
+            min-width: 300px;
+        }
+        
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .patient-dashboard {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 120px);
+        }
+        
+        .chat-sessions-sidebar {
+            width: 280px;
+            min-width: 280px;
+        }
+        
+        .main-chat-area {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .doctor-dashboard-layout {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 120px);
+        }
+        
+        .patients-sidebar {
+            width: 300px;
+            min-width: 300px;
+        }
+        
+        .main-dashboard-area {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .session-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .session-tab {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .session-tab:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .session-tab.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .session-content {
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+            min-height: 400px;
+        }
+        
+        .session-details {
+            padding: 0;
+        }
+        
+        .session-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .session-header h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 24px;
+        }
+        
+        .session-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .session-info span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -681,128 +1222,310 @@
             color: white;
         }
         
-        /* Patient Notifications */
+        /* Enhanced Patient Notifications */
         .notifications-panel {
             position: fixed;
-            top: 80px;
-            right: 20px;
-            width: 350px;
-            max-height: 400px;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: -2px 0 15px rgba(0,0,0,0.2);
             z-index: 1000;
             display: none;
+            transition: right 0.3s ease;
+            border-left: 1px solid #e1e5e9;
         }
         
         .notifications-panel.show {
+            right: 0;
             display: block;
         }
         
         .notifications-header {
-            padding: 15px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             color: white;
-            border-radius: 15px 15px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .notifications-header h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
         }
         
         .notifications-content {
-            max-height: 300px;
+            height: calc(100vh - 100px);
             overflow-y: auto;
-            padding: 10px;
+            padding: 25px;
         }
         
         .notification-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #007bff;
             background: #f8f9fa;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .notification-item:hover {
             background: #e9ecef;
-            transform: translateX(5px);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         }
         
         .notification-item.prescription {
-            border-left-color: #4facfe;
+            border-left-color: #28a745;
+            background: #f8fff9;
         }
         
         .notification-item.appointment {
-            border-left-color: #51cf66;
+            border-left-color: #007bff;
+            background: #f8fbff;
         }
         
         .notification-item.question {
-            border-left-color: #ffd43b;
+            border-left-color: #ffc107;
+            background: #fffef8;
         }
         
         .notification-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
         
         .notification-type {
             font-weight: bold;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
+            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 20px;
             color: white;
         }
         
         .notification-type.prescription {
-            background: #4facfe;
+            background: #28a745;
         }
         
         .notification-type.appointment {
-            background: #51cf66;
+            background: #007bff;
         }
         
         .notification-type.question {
-            background: #ffd43b;
-            color: #333;
+            background: #ffc107;
+            color: #212529;
         }
         
         .notification-time {
-            font-size: 11px;
-            color: #666;
+            font-size: 13px;
+            color: #6c757d;
+            font-style: italic;
         }
         
         .notification-content {
-            font-size: 14px;
-            line-height: 1.4;
-            color: #333;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #495057;
         }
         
         .notification-badge {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: #ff6b6b;
+            background: #dc3545;
             color: white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         
         .close-notifications {
             background: none;
             border: none;
             color: white;
-            font-size: 18px;
+            font-size: 24px;
             cursor: pointer;
+            padding: 0;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+        
+        /* Doctor Actions History */
+        .doctor-actions-panel {
+            position: fixed;
+            top: 0;
+            left: -450px;
+            width: 450px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            transition: left 0.3s ease;
+            border-right: 1px solid #e1e5e9;
+        }
+        
+        .doctor-actions-panel.show {
+            left: 0;
+            display: block;
+        }
+        
+        .doctor-actions-header {
+            padding: 25px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .doctor-actions-header h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        .doctor-actions-content {
+            height: calc(100vh - 100px);
+            overflow-y: auto;
+            padding: 25px;
+        }
+        
+        .doctor-action-item {
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #28a745;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .doctor-action-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .doctor-action-item.prescription {
+            border-left-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .doctor-action-item.appointment {
+            border-left-color: #007bff;
+            background: #f8fbff;
+        }
+        
+        .doctor-action-item.question {
+            border-left-color: #ffc107;
+            background: #fffef8;
+        }
+        
+        .doctor-action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .doctor-action-type {
+            font-weight: bold;
+            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
+        }
+        
+        .doctor-action-type.prescription {
+            background: #28a745;
+        }
+        
+        .doctor-action-type.appointment {
+            background: #007bff;
+        }
+        
+        .doctor-action-type.question {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .doctor-action-time {
+            font-size: 13px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .doctor-action-content {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #495057;
+        }
+        
+        .doctor-action-patient {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        
+        .close-doctor-actions {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+        
+        .close-doctor-actions:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .doctor-actions-toggle {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .doctor-actions-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
     </style>
 </head>
@@ -853,39 +1576,116 @@
         <div class="app-content">
             <!-- Patient Chat Interface -->
             <div class="patient-chat" id="patientChat">
-                <div class="status" id="status">
-                    Connected to AI Assistant
-                </div>
-                
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Messages will be added here -->
-                </div>
-                
-                <div class="typing-indicator" id="typingIndicator">
-                    <div class="message-sender">MedAlert AI</div>
-                    <div class="typing-dots">Typing</div>
-                </div>
-                
-                <div class="chat-input">
-                    <input type="text" id="messageInput" placeholder="Describe your symptoms or how you're feeling..." />
-                    <button id="sendButton" onclick="sendMessage()">Send</button>
-                    <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                    <button onclick="document.getElementById('imageUpload').click()" class="image-btn">📷 Upload Image</button>
-                </div>
-                
-                <div class="checkup-done">
-                    <button onclick="completeCheckup()">✅ Checkup Done - Send to Doctor</button>
+                <div class="patient-dashboard">
+                    <!-- Chat Sessions Sidebar -->
+                    <div class="chat-sessions-sidebar">
+                        <div class="sidebar-header">
+                            <h3>💬 Chat Sessions</h3>
+                            <button onclick="createNewChatSession()" class="new-chat-btn">➕ New Chat</button>
+                        </div>
+                        <div id="chatSessionsList" class="sessions-list">
+                            <!-- Chat sessions will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content Area with Tabs -->
+                    <div class="main-chat-area">
+                        <!-- Patient Tabs -->
+                        <div class="patient-tabs">
+                            <button class="patient-tab active" onclick="showPatientTab('chat')">💬 Chat</button>
+                            <button class="patient-tab" onclick="showPatientTab('actions')">📋 Doctor Actions</button>
+                        </div>
+                        
+                        <!-- Chat Tab Content -->
+                        <div id="patientChatTab" class="patient-tab-content active">
+                            <div id="currentChatHeader" class="chat-header">
+                                <div class="status" id="status">Connected to AI Assistant</div>
+                                <h3 id="currentSessionTitle">Select or create a new chat session</h3>
+                            </div>
+                            
+                            <div class="chat-messages" id="chatMessages">
+                                <!-- Messages will be added here -->
+                            </div>
+                    
+                            <div class="typing-indicator" id="typingIndicator">
+                                <div class="message-sender">MedAlert AI</div>
+                                <div class="typing-dots">Typing</div>
+                            </div>
+                            
+                            <div class="chat-input">
+                                <input type="text" id="messageInput" placeholder="Describe your symptoms or how you're feeling..." />
+                                <button id="sendButton" onclick="sendMessage()">Send</button>
+                                <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                <button onclick="document.getElementById('imageUpload').click()" class="image-btn">📷 Upload Image</button>
+                                <button onclick="sendChatToDoctor()" class="send-to-doctor-btn">📤 Send to Doctor</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Doctor Actions Tab Content -->
+                        <div id="patientActionsTab" class="patient-tab-content">
+                            <div class="actions-header">
+                                <h3>📋 Doctor Actions & Messages</h3>
+                                <p>View all actions and messages from your doctor</p>
+                            </div>
+                            <div id="patientActionsContent" class="actions-content">
+                                <!-- Doctor actions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Doctor Dashboard -->
             <div class="doctor-dashboard" id="doctorDashboard">
-                <div class="dashboard-content">
-                    <h2>Patient Summaries</h2>
-                    <div class="patients-list" id="patientsList">
-                        <!-- Patient cards will be added here -->
+                <div class="doctor-dashboard-layout">
+                    <!-- Patients Sidebar -->
+                    <div class="patients-sidebar">
+                        <div class="sidebar-header">
+                            <h3>👥 Patients</h3>
+                        </div>
+                        <div id="patientsList" class="patients-list">
+                            <!-- Patients will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Main Dashboard Area -->
+                    <div class="main-dashboard-area">
+                        <div id="patientDetailsHeader" class="patient-header">
+                            <h2 id="selectedPatientName">Select a patient</h2>
+                            <button class="doctor-actions-toggle" onclick="toggleDoctorActions()">📋 My Actions</button>
+                        </div>
+                        
+                        <!-- Patient Session Tabs -->
+                        <div id="patientSessionTabs" class="session-tabs">
+                            <!-- Session tabs will be loaded here -->
+                        </div>
+                        
+                        <!-- Session Content -->
+                        <div id="sessionContent" class="session-content">
+                            <div class="welcome-message">
+                                <h3>🏥 Patient Dashboard</h3>
+                                <p>Select a patient from the sidebar to view their chat sessions and medical summaries.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Cumulative Summary Section -->
+                        <div id="cumulativeSummary" class="cumulative-summary" style="display: none;">
+                            <h3>📋 Cumulative Patient Summary</h3>
+                            <div id="cumulativeSummaryContent"></div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Doctor Actions History Panel -->
+        <div class="doctor-actions-panel" id="doctorActionsPanel">
+            <div class="doctor-actions-header">
+                <h3>📋 My Actions</h3>
+                <button class="close-doctor-actions" onclick="toggleDoctorActions()">×</button>
+            </div>
+            <div class="doctor-actions-content" id="doctorActionsContent">
+                <!-- Doctor actions will be loaded here -->
             </div>
         </div>
         
@@ -908,6 +1708,8 @@
         let messages = [];
         let selectedUserType = 'patient';
         let currentSelectedPatient = null;
+        let currentSessionId = null;
+        let currentDoctorPatientId = null;
         
         // Login Functions
         function selectUserType(type) {
@@ -935,26 +1737,42 @@
                     })
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
                     currentUser = result;
+                    
+                    // Set current patient ID for patient users
+                    if (result.user_type === 'patient') {
+                        currentPatientId = result.user_id;
+                    }
+                    
                     showMainApp();
                     
                     if (result.user_type === 'patient') {
                         showPatientChat();
-                        initChat();
+                        loadPatientChatSessions();
                         loadPatientNotifications();
                     } else {
                         showDoctorDashboard();
-                        loadPatients();
+                        loadDoctorPatients();
                     }
                 } else {
                     alert('Invalid credentials. Please try again.');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                alert('Login failed. Please check if the backend is running.');
+                if (error.message.includes('HTTP error! status: 401')) {
+                    alert('Invalid credentials. Please try again.');
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    alert('Login failed. Please check if the backend is running on http://localhost:8001');
+                } else {
+                    alert('Login failed. Please try again.');
+                }
             }
         }
         
@@ -966,20 +1784,49 @@
         
         function logout() {
             currentUser = null;
+            currentPatientId = 'demo_patient_123';
+            currentSessionId = null;
+            currentDoctorPatientId = null;
+            
+            // Reset all UI elements
             document.getElementById('mainApp').classList.remove('show');
             document.getElementById('loginContainer').style.display = 'flex';
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+            
+            // Hide all dashboard elements
+            document.getElementById('patientChat').style.display = 'none';
+            document.getElementById('doctorDashboard').style.display = 'none';
+            
+            // Clear any active content
+            document.getElementById('sessionContent').style.display = 'block';
+            document.getElementById('cumulativeSummary').style.display = 'none';
+            document.getElementById('sessionContent').innerHTML = '';
+            document.getElementById('cumulativeSummaryContent').innerHTML = '';
         }
         
         function showPatientChat() {
             document.getElementById('patientChat').style.display = 'flex';
             document.getElementById('doctorDashboard').style.display = 'none';
+            
+            // Load patient dashboard data
+            loadPatientChatSessions();
+            
+            // Auto-create a session if none exists
+            setTimeout(async () => {
+                const sessionsList = document.getElementById('chatSessionsList');
+                if (sessionsList.innerHTML.includes('No chat sessions yet')) {
+                    await createNewChatSession();
+                }
+            }, 500);
         }
         
         function showDoctorDashboard() {
             document.getElementById('patientChat').style.display = 'none';
             document.getElementById('doctorDashboard').style.display = 'flex';
+            
+            // Load doctor dashboard data
+            loadDoctorPatients();
         }
         
         // Patient Chat Functions
@@ -998,70 +1845,38 @@
             }
         }
         
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
+        function displayMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.sender}`;
             
-            if (!message) return;
+            const senderName = message.sender === 'patient' ? 'You' : 'MedAlert AI';
+            const time = new Date(message.timestamp).toLocaleTimeString();
             
-            // Add user message
-            const userMessage = {
-                _id: `user_${Date.now()}`,
-                sender: 'patient',
-                message: message,
-                timestamp: new Date().toISOString()
-            };
+            let messageContent = `
+                <div class="message-content">
+                    <div class="message-sender">${senderName}</div>
+                    <div>${message.message}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
             
-            messages.push(userMessage);
-            displayMessages();
-            input.value = '';
-            
-            // Show typing indicator
-            showTypingIndicator();
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/patient/chatbot_message`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        patient_id: currentPatientId,
-                        message: message
-                    })
-                });
-                
-                const aiResponse = await response.json();
-                messages.push(aiResponse);
-                
-                hideTypingIndicator();
-                displayMessages();
-                
-                // Scroll to bottom
-                scrollToBottom();
-                
-                updateStatus('Connected to AI Assistant', false);
-                
-                // Show image upload if needed
-                if (aiResponse.requires_image_upload) {
-                    showImageUpload();
-                }
-                
-            } catch (error) {
-                console.error('Error sending message:', error);
-                hideTypingIndicator();
-                
-                const errorMessage = {
-                    _id: `error_${Date.now()}`,
-                    sender: 'ai',
-                    message: 'Sorry, I\'m having trouble connecting right now. Please try again.',
-                    timestamp: new Date().toISOString()
-                };
-                
-                messages.push(errorMessage);
-                displayMessages();
-                updateStatus('Error connecting to AI. Please try again.', true);
+            if (message.image_url) {
+                messageContent = `
+                    <div class="message-content">
+                        <div class="message-sender">${senderName}</div>
+                        <div>${message.message}</div>
+                        <img src="${message.image_url}" alt="Uploaded image" style="max-width: 200px; margin-top: 10px;">
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
             }
+            
+            messageDiv.innerHTML = messageContent;
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
         function showImageUpload() {
@@ -1128,46 +1943,311 @@
             const file = event.target.files[0];
             if (!file) return;
             
+            if (!currentSessionId) {
+                alert('Please create or select a chat session first');
+                return;
+            }
+            
             // Show loading
             showTypingIndicator();
             
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('patient_id', currentPatientId);
+                // Convert image to base64 for display
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        // Send image as a message to the current session
+                        const imageMessage = {
+                            sender: 'patient',
+                            message: `Uploaded image: ${file.name}`,
+                            image_url: e.target.result,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        displayMessage(imageMessage);
+                        
+                        // Send a message about the image to get AI response
+                        const response = await fetch(`${API_BASE_URL}/patient/chat_session/${currentSessionId}/message`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                patient_id: currentPatientId,
+                                message: `I've uploaded an image: ${file.name}. Please analyze it.`
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const aiResponse = await response.json();
+                        displayMessage(aiResponse);
+                        
+                        // Update session in sidebar
+                        await loadPatientChatSessions();
+                        
+                    } catch (error) {
+                        console.error('Error processing image:', error);
+                        alert('Error processing image. Please check if the backend is running on http://localhost:8001');
+                    } finally {
+                        hideTypingIndicator();
+                        event.target.value = '';
+                    }
+                };
                 
-                const response = await fetch(`${API_BASE_URL}/patient/upload_image`, {
-                    method: 'POST',
-                    body: formData
+                reader.readAsDataURL(file);
+                
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image. Please check if the backend is running on http://localhost:8001');
+                hideTypingIndicator();
+                event.target.value = '';
+            }
+        }
+
+        // Patient Dashboard Functions
+        async function loadPatientChatSessions() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/chat_sessions/${currentPatientId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const sessions = await response.json();
+                
+                displayChatSessions(sessions);
+            } catch (error) {
+                console.error('Error loading chat sessions:', error);
+                // Don't show alert for this, just log the error
+            }
+        }
+        
+        function displayChatSessions(sessions) {
+            const sessionsList = document.getElementById('chatSessionsList');
+            
+            if (sessions.length === 0) {
+                sessionsList.innerHTML = `
+                    <div class="no-sessions">
+                        <p>No chat sessions yet.</p>
+                        <p>Click "New Chat" to start your first conversation.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            sessionsList.innerHTML = sessions.map(session => `
+                <div class="session-item ${session.session_id === currentSessionId ? 'active' : ''}" 
+                     onclick="selectChatSession('${session.session_id}', '${session.title}')">
+                    <div class="session-title">${session.title}</div>
+                    <div class="session-meta">
+                        ${session.message_count} messages • ${new Date(session.last_message_at).toLocaleDateString()}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function createNewChatSession() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/create_chat_session/${currentPatientId}`, {
+                    method: 'POST'
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Add image message to chat
-                    const imageMessage = {
-                        sender: 'patient',
-                        message: `Uploaded image: ${file.name}`,
-                        image_url: `data:image/jpeg;base64,${file.name}`,
-                        timestamp: new Date().toISOString()
-                    };
+                    currentSessionId = result.session.session_id;
+                    document.getElementById('currentSessionTitle').textContent = result.session.title;
                     
-                    displayMessage(imageMessage);
+                    // Clear chat messages
+                    document.getElementById('chatMessages').innerHTML = '';
                     
-                    // Add AI response
-                    if (result.ai_response) {
-                        displayMessage(result.ai_response);
-                    }
+                    // Reload sessions list
+                    await loadPatientChatSessions();
+                    
+                    // Send welcome message
+                    await sendWelcomeMessage();
                 } else {
-                    alert('Failed to upload image. Please try again.');
+                    console.error('Failed to create new chat session:', result);
+                    alert('Failed to create new chat session. Please try again.');
                 }
             } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Error uploading image. Please try again.');
+                console.error('Error creating chat session:', error);
+                alert('Error creating chat session. Please check if the backend is running on http://localhost:8001');
+            }
+        }
+        
+        async function selectChatSession(sessionId, title) {
+            currentSessionId = sessionId;
+            document.getElementById('currentSessionTitle').textContent = title;
+            
+            // Update active session in UI
+            document.querySelectorAll('.session-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[onclick*="${sessionId}"]`).classList.add('active');
+            
+            // Load session messages
+            await loadSessionMessages(sessionId);
+        }
+        
+        async function loadSessionMessages(sessionId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/chat_session/${sessionId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const messages = await response.json();
+                
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                
+                messages.forEach(message => {
+                    displayMessage(message);
+                });
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                console.error('Error loading session messages:', error);
+            }
+        }
+        
+        async function sendWelcomeMessage() {
+            // Send a welcome message to the backend to get AI response
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/chat_session/${currentSessionId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        patient_id: currentPatientId,
+                        message: "Hello, I'm starting a new chat session"
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const aiResponse = await response.json();
+                
+                // Display AI response
+                displayMessage(aiResponse);
+                
+            } catch (error) {
+                console.error('Error sending welcome message:', error);
+                // Fallback to local message if backend fails
+                const welcomeMessage = {
+                    sender: 'ai',
+                    message: 'Hello! I\'m your MedAlert AI assistant. How are you feeling today? I\'m here to help monitor your recovery and answer any questions you might have about your symptoms or medications.',
+                    timestamp: new Date().toISOString()
+                };
+                displayMessage(welcomeMessage);
+            }
+        }
+        
+        // Update sendMessage to work with sessions
+        async function sendMessage() {
+            if (!currentSessionId) {
+                alert('Please create or select a chat session first');
+                return;
+            }
+            
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Clear input and show loading
+            input.value = '';
+            showTypingIndicator();
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/patient/chat_session/${currentSessionId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        patient_id: currentPatientId,
+                        message: message
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const aiResponse = await response.json();
+                
+                // Display user message
+                const userMessage = {
+                    sender: 'patient',
+                    message: message,
+                    timestamp: new Date().toISOString()
+                };
+                displayMessage(userMessage);
+                
+                // Display AI response
+                displayMessage(aiResponse);
+                
+                // Update session in sidebar
+                await loadPatientChatSessions();
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message. Please check if the backend is running on http://localhost:8001');
+                
+                // Re-enable input
+                input.value = message;
             } finally {
                 hideTypingIndicator();
-                // Clear the file input
-                event.target.value = '';
+            }
+        }
+        
+        async function sendChatToDoctor() {
+            if (!currentSessionId) {
+                alert('Please create or select a chat session first');
+                return;
+            }
+            
+            try {
+                // Generate session summary
+                const response = await fetch(`${API_BASE_URL}/patient/generate_session_summary/${currentSessionId}`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Chat session sent to doctor successfully!\n\nYour conversation summary and overall patient progress have been forwarded to your doctor for review.');
+                    
+                    // Also generate cumulative summary
+                    try {
+                        await fetch(`${API_BASE_URL}/patient/generate_cumulative_summary/${currentPatientId}`, {
+                            method: 'POST'
+                        });
+                    } catch (error) {
+                        console.log('Cumulative summary generation failed, but session summary was sent');
+                    }
+                } else {
+                    alert('Failed to send chat to doctor. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error sending chat to doctor:', error);
+                alert('Error sending chat to doctor. Please check if the backend is running on http://localhost:8001');
             }
         }
 
@@ -1260,6 +2340,264 @@
         }
         
         // Doctor Dashboard Functions
+        async function loadDoctorPatients() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/patients`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const patients = await response.json();
+                
+                displayDoctorPatients(patients);
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+        
+        function displayDoctorPatients(patients) {
+            const patientsList = document.getElementById('patientsList');
+            
+            if (patients.length === 0) {
+                patientsList.innerHTML = '<div class="no-patients"><p>No patients found.</p></div>';
+                return;
+            }
+            
+            patientsList.innerHTML = patients.map(patient => `
+                <div class="patient-card ${patient.patient_id === currentDoctorPatientId ? 'active' : ''}" 
+                     onclick="selectDoctorPatient('${patient.patient_id}', '${patient.patient_name}')">
+                    <div class="patient-info">
+                        <h4>${patient.patient_name}</h4>
+                        <div class="patient-meta">
+                            ${patient.needs_review ? '🔴 Needs Review' : '✅ Reviewed'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function selectDoctorPatient(patientId, patientName) {
+            currentDoctorPatientId = patientId;
+            document.getElementById('selectedPatientName').textContent = patientName;
+            
+            // Update active patient in UI
+            document.querySelectorAll('.patient-card').forEach(card => card.classList.remove('active'));
+            document.querySelector(`[onclick*="${patientId}"]`).classList.add('active');
+            
+            // Load patient sessions
+            await loadPatientSessions(patientId);
+            
+            // Load cumulative summary
+            await loadCumulativeSummary(patientId);
+        }
+        
+        async function loadPatientSessions(patientId) {
+            try {
+                currentDoctorPatientId = patientId; // Set the current patient ID
+                
+                const response = await fetch(`${API_BASE_URL}/doctor/patient_sessions/${patientId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const sessions = await response.json();
+                
+                displayPatientSessionTabs(sessions);
+                
+                if (sessions.length > 0) {
+                    // Select first session by default
+                    selectSessionTab(sessions[0].session_id, sessions[0]);
+                }
+            } catch (error) {
+                console.error('Error loading patient sessions:', error);
+            }
+        }
+        
+        function displayPatientSessionTabs(sessions) {
+            const sessionTabs = document.getElementById('patientSessionTabs');
+            
+            if (sessions.length === 0) {
+                sessionTabs.innerHTML = '<div class="no-sessions-msg">No chat sessions found for this patient.</div>';
+                return;
+            }
+            
+            // Add cumulative summary tab first
+            let tabsHTML = `
+                <button class="session-tab" onclick="showCumulativeSummary()">
+                    📋 Cumulative Summary
+                </button>
+            `;
+            
+            // Add individual session tabs
+            tabsHTML += sessions.map((session, index) => `
+                <button class="session-tab" onclick="selectSessionTab('${session.session_id}', ${JSON.stringify(session).replace(/"/g, '&quot;')})">
+                    💬 Session ${index + 1} - ${new Date(session.created_at).toLocaleDateString()}
+                </button>
+            `).join('');
+            
+            sessionTabs.innerHTML = tabsHTML;
+        }
+        
+        function selectSessionTab(sessionId, sessionData) {
+            // Update active tab
+            document.querySelectorAll('.session-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show session content using proper display management
+            const sessionContent = document.getElementById('sessionContent');
+            const cumulativeSummary = document.getElementById('cumulativeSummary');
+            
+            sessionContent.style.display = 'block';
+            cumulativeSummary.style.display = 'none';
+            
+            // Ensure proper scrolling
+            sessionContent.scrollTop = 0;
+            
+            // Display session content
+            displaySessionDetails(sessionData);
+        }
+        
+        function displaySessionDetails(sessionData) {
+            const sessionContent = document.getElementById('sessionContent');
+            
+            let contentHTML = `
+                <div class="session-details">
+                    <div class="session-header">
+                        <h3>${sessionData.title}</h3>
+                        <div class="session-info">
+                            <span>📅 ${new Date(sessionData.created_at).toLocaleDateString()}</span>
+                            <span>💬 ${sessionData.message_count} messages</span>
+                            <span>🕐 Last activity: ${new Date(sessionData.last_message_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+            `;
+            
+            if (sessionData.summary) {
+                contentHTML += `
+                    <div class="ai-summary">
+                        <h4>🤖 AI Summary</h4>
+                        <div class="summary-content">${sessionData.summary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+                    </div>
+                `;
+            }
+            
+            if (sessionData.preview && sessionData.preview.length > 0) {
+                contentHTML += `
+                    <div class="conversation-preview">
+                        <h4>💭 Conversation Preview</h4>
+                        ${sessionData.preview.map(msg => `<div class="preview-message">"${msg}"</div>`).join('')}
+                    </div>
+                `;
+            }
+            
+            // Add full conversation if available
+            if (sessionData.messages && sessionData.messages.length > 0) {
+                contentHTML += `
+                    <div class="full-conversation">
+                        <h4>💬 Full Conversation</h4>
+                        <div class="conversation-messages">
+                            ${sessionData.messages.map(msg => `
+                                <div class="conversation-message ${msg.sender}">
+                                    <div class="message-sender">${msg.sender === 'patient' ? 'Patient' : 'MedAlert AI'}</div>
+                                    <div class="message-content">${msg.message}</div>
+                                    <div class="message-time">${new Date(msg.timestamp).toLocaleString()}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add doctor actions
+            contentHTML += `
+                <div class="doctor-actions-section">
+                    <h4>👨‍⚕️ Doctor Actions</h4>
+                    <div class="doctor-actions-buttons">
+                        <button class="doctor-action-btn prescription" onclick="showPrescriptionForm('${currentDoctorPatientId}')">💊 Prescribe</button>
+                        <button class="doctor-action-btn appointment" onclick="showAppointmentForm('${currentDoctorPatientId}')">📅 Appointment</button>
+                        <button class="doctor-action-btn question" onclick="showQuestionForm('${currentDoctorPatientId}')">❓ Question</button>
+                    </div>
+                </div>
+            `;
+            
+            contentHTML += '</div>';
+            sessionContent.innerHTML = contentHTML;
+        }
+        
+        function showCumulativeSummary() {
+            // Update active tab
+            document.querySelectorAll('.session-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show cumulative summary using CSS classes
+            const cumulativeSummary = document.getElementById('cumulativeSummary');
+            const sessionContent = document.getElementById('sessionContent');
+            
+            cumulativeSummary.style.display = 'block';
+            sessionContent.style.display = 'none';
+            
+            // Ensure proper scrolling
+            cumulativeSummary.scrollTop = 0;
+            
+            // Load cumulative summary
+            loadCumulativeSummary(currentDoctorPatientId);
+        }
+        
+        async function loadCumulativeSummary(patientId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/cumulative_summary/${patientId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const summaryData = await response.json();
+                
+                if (summaryData.summary) {
+                    const summaryContent = document.getElementById('cumulativeSummaryContent');
+                    summaryContent.innerHTML = `
+                        <div class="summary-header">
+                            <div class="summary-stats">
+                                <span>📊 ${summaryData.total_sessions} Sessions</span>
+                                <span>💬 ${summaryData.total_messages} Messages</span>
+                                <span>📅 Generated: ${new Date(summaryData.generated_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="summary-text">${summaryData.summary.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+                        
+                        <!-- Doctor Actions for Cumulative Summary -->
+                        <div class="doctor-actions-section">
+                            <h4>👨‍⚕️ Doctor Actions</h4>
+                            <div class="doctor-actions-buttons">
+                                <button class="doctor-action-btn prescription" onclick="showPrescriptionForm('${patientId}')">💊 Prescribe Medication</button>
+                                <button class="doctor-action-btn appointment" onclick="showAppointmentForm('${patientId}')">📅 Schedule Appointment</button>
+                                <button class="doctor-action-btn question" onclick="showQuestionForm('${patientId}')">❓ Ask Question</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('cumulativeSummaryContent').innerHTML = `
+                        <p>No cumulative summary available yet.</p>
+                        
+                        <!-- Doctor Actions for Cumulative Summary -->
+                        <div class="doctor-actions-section">
+                            <h4>👨‍⚕️ Doctor Actions</h4>
+                            <div class="doctor-actions-buttons">
+                                <button class="doctor-action-btn prescription" onclick="showPrescriptionForm('${patientId}')">💊 Prescribe Medication</button>
+                                <button class="doctor-action-btn appointment" onclick="showAppointmentForm('${patientId}')">📅 Schedule Appointment</button>
+                                <button class="doctor-action-btn question" onclick="showQuestionForm('${patientId}')">❓ Ask Question</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading cumulative summary:', error);
+                document.getElementById('cumulativeSummaryContent').innerHTML = '<p>Error loading summary.</p>';
+            }
+        }
+
         async function loadPatients() {
             try {
                 const response = await fetch(`${API_BASE_URL}/doctor/patients`);
@@ -1380,14 +2718,21 @@
         async function loadPatientNotifications() {
             try {
                 const response = await fetch(`${API_BASE_URL}/patient/notifications/${currentPatientId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const notifications = await response.json();
                 
                 if (notifications.length > 0) {
                     showNotificationBadge(notifications.length);
-                    displayNotifications(notifications);
                 }
+                
+                displayNotifications(notifications);
             } catch (error) {
                 console.error('Error loading notifications:', error);
+                displayNotifications([]);
             }
         }
         
@@ -1426,6 +2771,60 @@
             `).join('');
         }
         
+        function showPatientTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.patient-tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.patient-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            if (tabName === 'chat') {
+                document.getElementById('patientChatTab').classList.add('active');
+                document.querySelector('.patient-tab[onclick="showPatientTab(\'chat\')"]').classList.add('active');
+            } else if (tabName === 'actions') {
+                document.getElementById('patientActionsTab').classList.add('active');
+                document.querySelector('.patient-tab[onclick="showPatientTab(\'actions\')"]').classList.add('active');
+                loadPatientActions();
+            }
+        }
+        
+        async function loadPatientActions() {
+            try {
+                const response = await fetch(`/api/patient/notifications/${currentPatientId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load patient actions');
+                }
+                const actions = await response.json();
+                displayPatientActions(actions);
+            } catch (error) {
+                console.error('Error loading patient actions:', error);
+                document.getElementById('patientActionsContent').innerHTML = 
+                    '<div class="no-actions">No doctor actions found.</div>';
+            }
+        }
+        
+        function displayPatientActions(actions) {
+            const content = document.getElementById('patientActionsContent');
+            
+            if (!actions || actions.length === 0) {
+                content.innerHTML = '<div class="no-actions">No doctor actions found.</div>';
+                return;
+            }
+            
+            content.innerHTML = actions.map(action => `
+                <div class="action-item ${action.action_type}">
+                    <div class="action-header">
+                        <span class="action-type ${action.action_type}">${action.action_type}</span>
+                        <span class="action-timestamp">${new Date(action.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="action-content">${action.content}</div>
+                </div>
+            `).join('');
+        }
+        
         function toggleNotifications() {
             const panel = document.getElementById('notificationsPanel');
             panel.classList.toggle('show');
@@ -1458,9 +2857,59 @@
             }
         }
         
+        // Doctor Actions Panel Functions
+        function toggleDoctorActions() {
+            const panel = document.getElementById('doctorActionsPanel');
+            panel.classList.toggle('show');
+            
+            if (panel.classList.contains('show')) {
+                loadDoctorActions();
+            }
+        }
+        
+        async function loadDoctorActions() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctor/actions`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const actions = await response.json();
+                
+                displayDoctorActions(actions);
+            } catch (error) {
+                console.error('Error loading doctor actions:', error);
+                document.getElementById('doctorActionsContent').innerHTML = '<p style="text-align: center; color: #6c757d; font-style: italic;">No actions taken yet.</p>';
+            }
+        }
+        
+        function displayDoctorActions(actions) {
+            const content = document.getElementById('doctorActionsContent');
+            
+            if (actions.length === 0) {
+                content.innerHTML = '<p style="text-align: center; color: #6c757d; font-style: italic;">No actions taken yet.</p>';
+                return;
+            }
+            
+            const actionsHTML = actions.map(action => `
+                <div class="doctor-action-item ${action.action_type}">
+                    <div class="doctor-action-header">
+                        <span class="doctor-action-type ${action.action_type}">${action.action_type.charAt(0).toUpperCase() + action.action_type.slice(1)}</span>
+                        <span class="doctor-action-time">${new Date(action.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="doctor-action-content">${action.content}</div>
+                    <div class="doctor-action-patient">Patient: ${action.patient_name || 'Unknown'}</div>
+                </div>
+            `).join('');
+            
+            content.innerHTML = actionsHTML;
+        }
+        
         // Doctor Action Functions
         function showPrescriptionForm(patientId) {
             currentSelectedPatient = patientId;
+            console.log('Setting currentSelectedPatient to:', patientId);
             const content = prompt('Enter prescription details (medication, dosage, instructions):');
             if (content) {
                 sendDoctorAction('prescription', content);
@@ -1469,6 +2918,7 @@
         
         function showAppointmentForm(patientId) {
             currentSelectedPatient = patientId;
+            console.log('Setting currentSelectedPatient to:', patientId);
             const content = prompt('Enter appointment details (urgency, scheduling, instructions):');
             if (content) {
                 sendDoctorAction('appointment', content);
@@ -1477,6 +2927,7 @@
         
         function showQuestionForm(patientId) {
             currentSelectedPatient = patientId;
+            console.log('Setting currentSelectedPatient to:', patientId);
             const content = prompt('Enter your question for the patient:');
             if (content) {
                 sendDoctorAction('question', content);
@@ -1496,6 +2947,8 @@
         }
         
         async function sendDoctorAction(actionType, content) {
+            console.log('sendDoctorAction called with:', { actionType, content, currentSelectedPatient });
+            
             if (!currentSelectedPatient) {
                 alert('Please select a patient first');
                 return;
@@ -1507,28 +2960,47 @@
             }
             
             try {
+                const requestBody = {
+                    patient_id: currentSelectedPatient,
+                    action_type: actionType,
+                    content: content,
+                    doctor_id: 'doctor_123'
+                };
+                
+                console.log('Sending request:', requestBody);
+                
                 const response = await fetch(`${API_BASE_URL}/doctor/action`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        patient_id: currentSelectedPatient,
-                        action_type: actionType,
-                        content: content,
-                        doctor_id: 'doctor_123'
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
+                console.log('Success result:', result);
+                
                 if (result.success) {
                     alert(`${actionType} sent successfully!`);
+                    
+                    // Reload doctor actions to show the new action
+                    if (document.getElementById('doctorActionsPanel').classList.contains('show')) {
+                        loadDoctorActions();
+                    }
                 } else {
                     alert(`Failed to send ${actionType}: ${result.message}`);
                 }
             } catch (error) {
                 console.error('Error sending doctor action:', error);
-                alert('Error sending action. Please try again.');
+                alert(`Failed to send ${actionType}. Please try again.`);
             }
         }
         
