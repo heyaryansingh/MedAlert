@@ -204,8 +204,9 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 300px);
             background: #f8f9fa;
+            margin-bottom: 20px;
         }
         
         .message {
@@ -269,6 +270,10 @@
             display: flex;
             gap: 10px;
             align-items: flex-end;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         
         .chat-input input {
@@ -476,6 +481,18 @@
         .action-content {
             color: #495057;
             line-height: 1.5;
+        }
+
+        .message-image {
+            margin-top: 10px;
+        }
+
+        .message-image img {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .chat-sessions-sidebar {
@@ -2502,6 +2519,7 @@
                                 <div class="conversation-message ${msg.sender}">
                                     <div class="message-sender">${msg.sender === 'patient' ? 'Patient' : 'MedAlert AI'}</div>
                                     <div class="message-content">${msg.message}</div>
+                                    ${msg.image_url ? `<div class="message-image"><img src="${msg.image_url}" alt="Uploaded image" style="max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd;" /></div>` : ''}
                                     <div class="message-time">${new Date(msg.timestamp).toLocaleString()}</div>
                                 </div>
                             `).join('')}
