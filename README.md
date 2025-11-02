@@ -68,4 +68,4 @@ In the past, one of my own family members was in a car crash and needed surgery 
 
 ## Contributing
 
-This project is designed for a hackathon. Contributions are welcome for further development!
+Contributions are welcome for further development!
