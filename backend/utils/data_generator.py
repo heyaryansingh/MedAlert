@@ -1,5 +1,12 @@
+"""
+Fake data generator for MedAlert demo and testing purposes.
+
+This module generates realistic mock data for patients, doctors, vitals,
+symptoms, chat messages, and other medical records using the Faker library.
+"""
+
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from faker import Faker
 from bson import ObjectId
@@ -43,7 +50,7 @@ def generate_fake_vitals(patient_id: PyObjectId, num_entries: int = 10) -> List[
     """Generates fake vital logs for a patient."""
     vitals = []
     for i in range(num_entries):
-        timestamp = datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(1, 23), minutes=random.randint(1, 59))
+        timestamp = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 30), hours=random.randint(1, 23), minutes=random.randint(1, 59))
         vitals.append(Vital(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -64,7 +71,7 @@ def generate_fake_symptom_logs(patient_id: PyObjectId, num_entries: int = 5) -> 
         "nausea", "dizziness", "chest pain", "rash", "wound discomfort"
     ]
     for i in range(num_entries):
-        timestamp = datetime.utcnow() - timedelta(days=random.randint(1, 15), hours=random.randint(1, 23), minutes=random.randint(1, 59))
+        timestamp = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 15), hours=random.randint(1, 23), minutes=random.randint(1, 59))
         symptoms.append(SymptomLog(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -103,7 +110,7 @@ def generate_fake_chat_messages(patient_id: PyObjectId, num_entries: int = 10) -
     ]
 
     for i in range(num_entries // 2):
-        timestamp_patient = datetime.utcnow() - timedelta(days=random.randint(1, 7), hours=random.randint(1, 23), minutes=random.randint(1, 59))
+        timestamp_patient = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 7), hours=random.randint(1, 23), minutes=random.randint(1, 59))
         messages.append(ChatMessage(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -125,7 +132,7 @@ def generate_fake_image_uploads(patient_id: PyObjectId, num_entries: int = 2) ->
     """Generates fake image upload entries."""
     images = []
     for i in range(num_entries):
-        timestamp = datetime.utcnow() - timedelta(days=random.randint(1, 10), hours=random.randint(1, 23), minutes=random.randint(1, 59))
+        timestamp = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 10), hours=random.randint(1, 23), minutes=random.randint(1, 59))
         images.append(ImageUpload(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -140,7 +147,7 @@ def generate_fake_doctor_notes(patient_id: PyObjectId, doctor_id: PyObjectId, nu
     """Generates fake doctor notes for a patient."""
     notes = []
     for i in range(num_entries):
-        timestamp = datetime.utcnow() - timedelta(days=random.randint(1, 20), hours=random.randint(1, 23), minutes=random.randint(1, 59))
+        timestamp = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 20), hours=random.randint(1, 23), minutes=random.randint(1, 59))
         notes.append(DoctorNote(
             id=PyObjectId(),
             patient_id=patient_id,
@@ -154,13 +161,13 @@ def generate_fake_prescriptions(patient_id: PyObjectId, doctor_id: PyObjectId, n
     """Generates fake prescriptions for a patient."""
     prescriptions = []
     for i in range(num_entries):
-        start_date = datetime.utcnow() - timedelta(days=random.randint(0, 10))
+        start_date = datetime.now(timezone.utc) - timedelta(days=random.randint(0, 10))
         end_date = start_date + timedelta(days=random.randint(7, 30))
         prescriptions.append(Prescription(
             id=PyObjectId(),
             patient_id=patient_id,
             doctor_id=doctor_id,
-            timestamp=datetime.utcnow() - timedelta(days=random.randint(1, 10)),
+            timestamp=datetime.now(timezone.utc) - timedelta(days=random.randint(1, 10)),
             medication_name=fake.word().capitalize() + "ol",
             dosage=f"{random.randint(100, 500)}mg {random.choice(['once', 'twice'])} daily",
             instructions="Take with food.",
@@ -173,12 +180,12 @@ def generate_fake_appointments(patient_id: PyObjectId, doctor_id: PyObjectId, nu
     """Generates fake appointments for a patient."""
     appointments = []
     for i in range(num_entries):
-        appointment_time = datetime.utcnow() + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice([0, 15, 30, 45]))
+        appointment_time = datetime.now(timezone.utc) + timedelta(days=random.randint(-5, 10), hours=random.randint(9, 17), minutes=random.choice([0, 15, 30, 45]))
         appointments.append(Appointment(
             id=PyObjectId(),
             patient_id=patient_id,
             doctor_id=doctor_id,
-            timestamp=datetime.utcnow() - timedelta(days=random.randint(1, 5)),
+            timestamp=datetime.now(timezone.utc) - timedelta(days=random.randint(1, 5)),
             appointment_time=appointment_time,
             reason=f"Follow-up for {fake.word()} condition.",
             status=random.choice(["scheduled", "completed", "cancelled"])
