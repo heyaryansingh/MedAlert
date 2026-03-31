@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 
 from backend.models import Patient, Doctor, User
@@ -10,8 +10,17 @@ from backend.dependencies import get_database
 router = APIRouter()
 
 class LoginRequest(BaseModel):
-    email: str
+    """Request model for user authentication."""
+    email: EmailStr  # Validates email format automatically
     password: str
+
+    @field_validator('password')
+    @classmethod
+    def password_not_empty(cls, v: str) -> str:
+        """Ensure password is not empty or whitespace-only."""
+        if not v or not v.strip():
+            raise ValueError('Password cannot be empty')
+        return v
 
 class AuthResponse(BaseModel):
     message: str
@@ -29,13 +38,18 @@ async def patient_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(
     patient = await db.patients.find_one({"email": request.email})
 
     if not patient or patient["password"] != request.password:
+        # TODO(security): Replace plaintext comparison with secure hash verification
+        # using bcrypt or argon2: verify_password(request.password, patient["password_hash"])
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Placeholder for JWT token generation
+    # TODO(security): Implement proper JWT generation with:
+    # - Secure secret key from environment
+    # - Token expiration (e.g., 15 min access, 7 day refresh)
+    # - User claims (id, role, permissions)
     token = "mock_patient_jwt_token"
 
     return AuthResponse(
@@ -55,13 +69,18 @@ async def doctor_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(g
     doctor = await db.doctors.find_one({"email": request.email})
 
     if not doctor or doctor["password"] != request.password:
+        # TODO(security): Replace plaintext comparison with secure hash verification
+        # using bcrypt or argon2: verify_password(request.password, doctor["password_hash"])
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Placeholder for JWT token generation
+    # TODO(security): Implement proper JWT generation with:
+    # - Secure secret key from environment
+    # - Token expiration (e.g., 15 min access, 7 day refresh)
+    # - User claims (id, role, permissions)
     token = "mock_doctor_jwt_token"
 
     return AuthResponse(
