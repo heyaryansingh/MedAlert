@@ -1,7 +1,13 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Any
+from typing import List, Literal, Optional, Any
 from datetime import datetime
 from bson import ObjectId
+
+# Type aliases for literal string fields
+UserRole = Literal["patient", "doctor"]
+AlertSeverity = Literal["low", "medium", "high", "critical"]
+AppointmentStatus = Literal["scheduled", "completed", "cancelled"]
+MessageSender = Literal["patient", "ai"]
 
 # Custom ObjectId type for Pydantic
 class PyObjectId(ObjectId):
@@ -23,8 +29,8 @@ class PyObjectId(ObjectId):
 class User(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     email: EmailStr
-    password: str # In a real app, this would be hashed
-    role: str # "patient" or "doctor"
+    password: str  # TODO(security): Store as hashed value, not plaintext
+    role: UserRole
 
     class Config:
         populate_by_name = True # Replaces allow_population_by_field_name in Pydantic v2
@@ -78,7 +84,7 @@ class ChatMessage(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    sender: str # "patient" or "ai"
+    sender: MessageSender
     message: str
     image_url: Optional[str] = None # URL to uploaded image if any
     ai_summary: Optional[str] = None # AI-generated summary of this specific message/turn
@@ -109,7 +115,7 @@ class Alert(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     alert_type: str # e.g., "high_risk_vitals", "wound_deterioration", "symptom_escalation", "doctor_review_needed"
     message: str
-    severity: str # "low", "medium", "high", "critical"
+    severity: AlertSeverity
     resolved: bool = False
     doctor_id: Optional[PyObjectId] = None # Doctor who created/resolved the alert
     chat_message_id: Optional[PyObjectId] = None # Link to specific chat message if applicable
@@ -154,7 +160,7 @@ class Appointment(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     appointment_time: datetime
     reason: str
-    status: str # "scheduled", "completed", "cancelled"
+    status: AppointmentStatus
 
     class Config:
         populate_by_name = True
