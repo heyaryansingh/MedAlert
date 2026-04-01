@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 import os
 from pydantic import BaseModel
@@ -35,7 +35,7 @@ async def log_vitals(
     Allows a patient to log their daily vitals.
     """
     vitals.patient_id = patient_id
-    vitals.timestamp = datetime.utcnow() # Ensure timestamp is current
+    vitals.timestamp = datetime.now(timezone.utc) # Ensure timestamp is current
 
     new_vital = await db.vitals.insert_one(vitals.model_dump(by_alias=True, exclude=["id"]))
     created_vital = await db.vitals.find_one({"_id": new_vital.inserted_id})
@@ -71,7 +71,7 @@ async def upload_image(
         patient_id=patient_id,
         image_url=file_location,
         description=description,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
 
     new_image_upload = await db.image_uploads.insert_one(image_upload.model_dump(by_alias=True, exclude=["id"]))
@@ -137,7 +137,7 @@ async def chatbot_message(request: ChatbotMessageRequest):
                 "_id": "demo_message_id",
                 "sender": "ai",
                 "message": ai_response,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "requires_image_upload": requires_image,
                 "image_url": None
             }
@@ -151,7 +151,7 @@ async def chatbot_message(request: ChatbotMessageRequest):
                 "_id": "error_message_id",
                 "sender": "ai",
                 "message": "I'm sorry, I'm having trouble processing your message right now. Please try again.",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "requires_image_upload": False,
                 "image_url": None
             }
@@ -179,7 +179,7 @@ async def get_patient_chat_history():
             "_id": "demo_1",
             "sender": "ai",
             "message": "Hello! I am MedAlert AI. How are you feeling today?",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "image_url": None
         }
     ]
@@ -223,7 +223,7 @@ async def generate_doctor_notes(
         patient_id=patient_id,
         doctor_id=doctor_id,
         note_content=ai_generated_note_content,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
 
     new_note = await db.doctor_notes.insert_one(doctor_note.model_dump(by_alias=True, exclude=["id"]))
@@ -235,7 +235,7 @@ async def generate_doctor_notes(
         message=f"Patient {patient.get('name', 'Unknown')} has completed their checkup. New AI-generated notes are available for review.",
         severity="medium",
         resolved=False,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         doctor_id=doctor_id
     )
     await db.alerts.insert_one(notification_alert.model_dump(by_alias=True, exclude=["id"]))

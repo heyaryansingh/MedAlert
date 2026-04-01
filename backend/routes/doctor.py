@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 
 from backend.models import (
@@ -120,7 +120,7 @@ async def add_notes(
         patient_id=patient_obj_id,
         doctor_id=doctor_id,
         note_content=request.note_content,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     new_note = await db.doctor_notes.insert_one(note.model_dump(by_alias=True, exclude=["id"]))
     created_note = await db.doctor_notes.find_one({"_id": new_note.inserted_id})
@@ -155,7 +155,7 @@ async def prescribe(
         instructions=request.instructions,
         start_date=request.start_date,
         end_date=request.end_date,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     new_prescription = await db.prescriptions.insert_one(prescription.model_dump(by_alias=True, exclude=["id"]))
     created_prescription = await db.prescriptions.find_one({"_id": new_prescription.inserted_id})
@@ -185,7 +185,7 @@ async def schedule_appointment(
         appointment_time=request.appointment_time,
         reason=request.reason,
         status="scheduled",
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     new_appointment = await db.appointments.insert_one(appointment.model_dump(by_alias=True, exclude=["id"]))
     created_appointment = await db.appointments.find_one({"_id": new_appointment.inserted_id})
