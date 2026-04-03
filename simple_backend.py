@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 import os
 
@@ -79,7 +79,7 @@ async def chatbot_message(request: ChatbotMessageRequest):
                 "_id": "demo_message_id",
                 "sender": "ai",
                 "message": ai_response,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "requires_image_upload": requires_image,
                 "image_url": None
             }
@@ -93,7 +93,7 @@ async def chatbot_message(request: ChatbotMessageRequest):
                 "_id": "error_message_id",
                 "sender": "ai",
                 "message": "I'm sorry, I'm having trouble processing your message right now. Please try again.",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "requires_image_upload": False,
                 "image_url": None
             }

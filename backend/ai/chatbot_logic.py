@@ -1,7 +1,7 @@
 import os
 import random
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Tuple, Any
 from motor.motor_asyncio import AsyncIOMotorClient
 import google.generativeai as genai
@@ -110,7 +110,7 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
                 message="Critical symptoms detected in patient communication. Immediate doctor review recommended.",
                 severity="critical",
                 resolved=False,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             await db.alerts.insert_one(alert.model_dump(by_alias=True, exclude=["id"]))
         
@@ -128,7 +128,7 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
                 patient_id=patient_id,
                 symptom_description=symptom_desc,
                 severity=random.randint(1, 10), # Mock severity, could be AI-determined or from a more advanced model
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
             await db.symptom_logs.insert_one(symptom_log.model_dump(by_alias=True, exclude=["id"]))
 
@@ -223,7 +223,7 @@ async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient)
     Combines mock AI analysis results.
     """
     # Fetch recent vitals (e.g., last 24 hours)
-    one_day_ago = datetime.utcnow() - timedelta(days=1)
+    one_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
     recent_vitals_cursor = db.vitals.find({"patient_id": patient_id, "timestamp": {"$gte": one_day_ago}})
     recent_vitals = [Vital(**v) async for v in recent_vitals_cursor]
 
