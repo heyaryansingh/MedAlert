@@ -1,3 +1,19 @@
+"""MedAlert AI Backend - FastAPI application for patient monitoring and doctor support.
+
+This module initializes the FastAPI application, configures middleware,
+establishes MongoDB connections, and registers API routers for authentication,
+patient management, and doctor workflows.
+
+Example:
+    Run the server with uvicorn:
+
+        $ uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+Attributes:
+    app: The FastAPI application instance.
+    database: The MongoDB database instance (or None in demo mode).
+"""
+
 import os
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
