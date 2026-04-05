@@ -1,7 +1,29 @@
+"""Pydantic models for MedAlert healthcare monitoring system.
+
+This module defines all data models used throughout the MedAlert application,
+including user models (Patient, Doctor), clinical data models (Vital, SymptomLog),
+and communication models (ChatMessage, Alert).
+
+All models use PyObjectId for MongoDB ObjectId compatibility with Pydantic.
+Timestamps are stored as timezone-aware UTC datetime objects.
+"""
+
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Literal, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
+
+
+def _utc_now() -> datetime:
+    """Return current UTC time as timezone-aware datetime.
+
+    This replaces the deprecated _utc_now() which returns
+    naive datetime objects.
+
+    Returns:
+        Timezone-aware datetime in UTC.
+    """
+    return datetime.now(timezone.utc)
 
 # Type aliases for literal string fields
 UserRole = Literal["patient", "doctor"]
@@ -54,7 +76,7 @@ class Doctor(User):
 class Vital(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     heart_rate: Optional[int] = None
     blood_pressure_systolic: Optional[int] = None
     blood_pressure_diastolic: Optional[int] = None
@@ -70,7 +92,7 @@ class Vital(BaseModel):
 class SymptomLog(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     symptom_description: str
     severity: Optional[int] = Field(None, ge=1, le=10) # 1-10 scale
     # Additional fields for symptoms
@@ -83,7 +105,7 @@ class SymptomLog(BaseModel):
 class ChatMessage(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     sender: MessageSender
     message: str
     image_url: Optional[str] = None # URL to uploaded image if any
@@ -100,7 +122,7 @@ class ChatMessage(BaseModel):
 class ConversationSummary(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    last_updated: datetime = Field(default_factory=_utc_now)
     summary_text: str
     # Potentially add a sentiment score or risk level here
 
@@ -112,7 +134,7 @@ class ConversationSummary(BaseModel):
 class Alert(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     alert_type: str # e.g., "high_risk_vitals", "wound_deterioration", "symptom_escalation", "doctor_review_needed"
     message: str
     severity: AlertSeverity
@@ -129,7 +151,7 @@ class DoctorNote(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
     doctor_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     note_content: str
 
     class Config:
@@ -141,7 +163,7 @@ class Prescription(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
     doctor_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     medication_name: str
     dosage: str
     instructions: str
@@ -157,7 +179,7 @@ class Appointment(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
     doctor_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     appointment_time: datetime
     reason: str
     status: AppointmentStatus
@@ -170,7 +192,7 @@ class Appointment(BaseModel):
 class ImageUpload(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
     patient_id: PyObjectId
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     image_url: str # URL to the uploaded image (e.g., S3 bucket, local storage)
     description: Optional[str] = None
     ai_analysis_summary: Optional[str] = None # AI-generated summary of the image
