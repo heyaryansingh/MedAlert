@@ -1,3 +1,25 @@
+"""AI Chatbot Logic for MedAlert patient monitoring system.
+
+This module provides the core AI-powered chatbot functionality using Google Gemini
+models for patient interaction, symptom extraction, image analysis, and risk
+assessment. It handles the complete chatbot conversation flow including:
+
+- Generating contextual AI responses to patient messages
+- Analyzing uploaded images for wound assessment
+- Extracting symptoms from patient descriptions
+- Calculating patient risk scores from vitals, symptoms, and images
+- Creating alerts for critical conditions
+
+Environment Variables:
+    GEMINI_API_KEY: Required API key for Google Gemini models.
+
+Example:
+    >>> from backend.ai.chatbot_logic import get_chatbot_response
+    >>> response, needs_image, summary = await get_chatbot_response(
+    ...     "I have a headache", patient_id, db
+    ... )
+"""
+
 import os
 import random
 import json
@@ -36,9 +58,25 @@ gemini_model = genai.GenerativeModel('gemini-pro', system_instruction=SYSTEM_INS
 gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
 
 async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db: AsyncIOMotorClient, image_path: Optional[str] = None) -> Tuple[str, bool, str]:
-    """
-    Generates an AI chatbot response using Google Gemini model, incorporating chat history and image analysis.
-    Returns the AI response, whether an image is required, and an AI summary of the interaction.
+    """Generate an AI chatbot response using Google Gemini model.
+
+    Processes patient messages with full conversation context, analyzes any
+    uploaded images, detects critical symptoms, and creates alerts when necessary.
+
+    Args:
+        patient_message: The patient's text message to respond to.
+        patient_id: MongoDB ObjectId of the patient.
+        db: AsyncIO MongoDB client for database operations.
+        image_path: Optional path to an uploaded image for analysis.
+
+    Returns:
+        A tuple containing:
+            - str: The AI-generated response text.
+            - bool: Whether an image upload is requested/required.
+            - str: AI-generated summary of the interaction for doctor review.
+
+    Raises:
+        Exception: Logged internally; returns fallback response on API errors.
     """
     requires_image = False
     ai_summary = ""
@@ -135,8 +173,17 @@ async def get_chatbot_response(patient_message: str, patient_id: PyObjectId, db:
     return ai_response_text, requires_image, ai_summary
 
 async def summarize_conversation_for_doctor(conversation_text: str) -> str:
-    """
-    Summarizes a given conversation text concisely for a doctor using Google Gemini model.
+    """Summarize a patient-AI conversation for doctor review.
+
+    Uses Gemini to create a concise clinical summary highlighting key symptoms,
+    patient concerns, and AI recommendations.
+
+    Args:
+        conversation_text: Full text of the patient-AI interaction to summarize.
+
+    Returns:
+        A concise summary string suitable for quick doctor review.
+        Falls back to error message if API call fails.
     """
     try:
         response = gemini_model.generate_content(
@@ -149,8 +196,17 @@ async def summarize_conversation_for_doctor(conversation_text: str) -> str:
     return summary.strip()
 
 async def extract_symptoms_from_message(message: str) -> List[str]:
-    """
-    Uses Gemini to extract a list of symptoms from a patient's message.
+    """Extract distinct symptoms from a patient's message using Gemini.
+
+    Parses natural language patient messages to identify and extract
+    individual symptoms for logging and risk assessment.
+
+    Args:
+        message: The patient's text message to analyze.
+
+    Returns:
+        List of distinct symptom descriptions extracted from the message.
+        Returns empty list if no symptoms detected or on API error.
     """
     try:
         response = gemini_model.generate_content(
@@ -166,9 +222,18 @@ async def extract_symptoms_from_message(message: str) -> List[str]:
         return []
 
 async def analyze_vitals_for_risk(vitals: Vital) -> Optional[str]:
-    """
-    Mocks AI analysis of vitals for risk assessment.
-    In a real scenario, this could use a more sophisticated rule-based system or ML model.
+    """Analyze patient vitals for potential health risks.
+
+    Evaluates vital signs against clinical thresholds to detect abnormalities
+    requiring attention. Currently uses rule-based logic; designed for future
+    ML model integration.
+
+    Args:
+        vitals: Vital signs record containing heart rate, blood pressure,
+            temperature, and oxygen saturation readings.
+
+    Returns:
+        Risk message string if abnormality detected, None otherwise.
     """
     risk_message = None
     if vitals.heart_rate and (vitals.heart_rate > 100 or vitals.heart_rate < 60):
@@ -185,10 +250,19 @@ async def analyze_vitals_for_risk(vitals: Vital) -> Optional[str]:
     return risk_message
 
 async def analyze_image_for_wound(image_path: str) -> Dict[str, Any]:
-    """
-    Mocks AI analysis of an image for wound assessment using a pretrained CNN model.
-    In a real scenario, this would involve loading and running a PyTorch/TensorFlow model.
-    For the demo, it simulates a result.
+    """Analyze an image for wound assessment (mock implementation).
+
+    Simulates CNN-based wound detection for demo purposes. In production,
+    this would load and run a pretrained PyTorch/TensorFlow model.
+
+    Args:
+        image_path: Path to the image file to analyze.
+
+    Returns:
+        Dictionary containing:
+            - wound_detected (bool): Whether a wound was identified.
+            - severity_score (int): Severity rating 1-10.
+            - description (str): Human-readable analysis summary.
     """
     # Placeholder for actual CNN model inference
     # Example:
@@ -218,9 +292,17 @@ async def analyze_image_for_wound(image_path: str) -> Dict[str, Any]:
     return analysis_result
 
 async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient) -> float:
-    """
-    Calculates a patient's overall risk score based on vitals, symptoms, and image analysis.
-    Combines mock AI analysis results.
+    """Calculate a patient's overall health risk score.
+
+    Aggregates data from the last 24 hours including vitals, symptom logs,
+    and image analyses to compute a normalized risk score.
+
+    Args:
+        patient_id: MongoDB ObjectId of the patient.
+        db: AsyncIO MongoDB client for database queries.
+
+    Returns:
+        Risk score from 0.0 to 10.0, where higher values indicate greater risk.
     """
     # Fetch recent vitals (e.g., last 24 hours)
     one_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
@@ -262,8 +344,20 @@ async def get_patient_risk_score(patient_id: PyObjectId, db: AsyncIOMotorClient)
     return round(risk_score, 2)
 
 async def analyze_image_with_gemini_vision(image_path: str) -> Dict[str, Any]:
-    """
-    Analyzes an image for wound assessment using Google Gemini Vision model.
+    """Analyze an image for wound assessment using Google Gemini Vision.
+
+    Sends the image to Gemini Vision model for analysis of wounds, rashes,
+    burns, cuts, bruises, or swelling with severity assessment.
+
+    Args:
+        image_path: Path to the image file (JPEG format expected).
+
+    Returns:
+        Dictionary containing:
+            - wound_detected (bool): Whether injury was identified.
+            - severity_score (int | None): Severity 1-10, or None if not applicable.
+            - description (str): Detailed analysis findings.
+            - doctor_review_recommended (bool): Whether immediate review needed.
     """
     try:
         # Read the image file
