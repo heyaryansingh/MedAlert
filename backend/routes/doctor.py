@@ -1,3 +1,25 @@
+"""Doctor API routes for patient management and clinical workflows.
+
+This module provides FastAPI routes for doctor-facing functionality including
+patient list retrieval, clinical data access, prescriptions, appointments,
+and alert management.
+
+Routes:
+    GET /doctor/get_patients: List all patients with risk scores.
+    GET /doctor/get_patient_data/{patient_id}: Comprehensive patient data.
+    POST /doctor/add_notes: Add clinical notes for a patient.
+    POST /doctor/prescribe: Create a new prescription.
+    POST /doctor/schedule_appointment: Schedule patient appointment.
+    POST /doctor/add_chat_comment: Add comment to chat message.
+    GET /doctor/get_notifications: Get unresolved alerts.
+    POST /doctor/mark_alert_resolved: Mark an alert as resolved.
+
+Example:
+    >>> # Include router in FastAPI app
+    >>> from backend.routes.doctor import router
+    >>> app.include_router(router, tags=["doctor"])
+"""
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
