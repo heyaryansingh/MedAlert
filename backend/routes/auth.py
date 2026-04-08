@@ -1,3 +1,27 @@
+"""Authentication routes for MedAlert healthcare monitoring system.
+
+This module provides login endpoints for patients and doctors. Authentication
+is handled via email/password validation with JWT token generation (mocked
+for hackathon demo).
+
+Routes:
+    POST /patient/login: Authenticate a patient user
+    POST /doctor/login: Authenticate a doctor user
+
+Security Notes:
+    - Password hashing not yet implemented (TODO for production)
+    - JWT tokens are mocked; implement proper signing for production
+
+Example:
+    >>> import httpx
+    >>> response = httpx.post(
+    ...     "http://localhost:8000/patient/login",
+    ...     json={"email": "patient@example.com", "password": "secret"}
+    ... )
+    >>> response.json()
+    {'message': 'Patient login successful', 'user_id': '...', 'role': 'patient', 'token': '...'}
+"""
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient

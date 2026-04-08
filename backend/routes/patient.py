@@ -1,3 +1,34 @@
+"""Patient routes for MedAlert healthcare monitoring system.
+
+This module provides endpoints for patient-facing functionality including
+vitals logging, image uploads, AI chatbot interactions, and doctor note
+generation.
+
+Routes:
+    POST /patient/log_vitals: Log daily health vitals (heart rate, BP, etc.)
+    POST /patient/upload_image: Upload wound/bandage photos for AI analysis
+    POST /patient/chatbot_message: Send message to AI chatbot, receive response
+    GET /patient/get_alerts: Retrieve AI-generated alerts and instructions
+    GET /patient/chat_history: Get conversation history with AI
+    POST /patient/generate_notes: Generate AI summary notes for doctor
+
+The AI chatbot uses keyword detection to provide contextual medical responses
+and can request image uploads when visual assessment is needed.
+
+Example:
+    >>> import httpx
+    >>> # Log vitals
+    >>> response = httpx.post(
+    ...     "http://localhost:8000/patient/log_vitals",
+    ...     json={"heart_rate": 72, "temperature": 98.6}
+    ... )
+    >>> # Chat with AI
+    >>> response = httpx.post(
+    ...     "http://localhost:8000/patient/chatbot_message",
+    ...     json={"patient_id": "...", "message": "I have some pain"}
+    ... )
+"""
+
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
