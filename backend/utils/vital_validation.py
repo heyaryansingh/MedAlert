@@ -326,3 +326,248 @@ def format_vital_summary(result: ValidationResult) -> str:
             lines.append(f"  • {alert}")
 
     return "\n".join(lines)
+
+
+class BMICategory(str, Enum):
+    """BMI classification categories based on WHO standards."""
+    UNDERWEIGHT = "underweight"
+    NORMAL = "normal"
+    OVERWEIGHT = "overweight"
+    OBESE_CLASS_1 = "obese_class_1"
+    OBESE_CLASS_2 = "obese_class_2"
+    OBESE_CLASS_3 = "obese_class_3"
+
+
+@dataclass
+class BMIResult:
+    """BMI calculation and classification result.
+
+    Attributes:
+        bmi: Calculated BMI value
+        category: WHO BMI classification
+        is_healthy: Whether BMI is in healthy range
+        risk_level: Associated health risk level
+        recommendations: Health recommendations based on BMI
+    """
+    bmi: float
+    category: BMICategory
+    is_healthy: bool
+    risk_level: str
+    recommendations: List[str] = field(default_factory=list)
+
+
+def calculate_bmi(
+    weight_kg: float,
+    height_cm: float,
+) -> BMIResult:
+    """Calculate Body Mass Index and classify health risk.
+
+    Calculates BMI using the standard formula and classifies according
+    to WHO guidelines. Provides health recommendations based on category.
+
+    Args:
+        weight_kg: Body weight in kilograms
+        height_cm: Height in centimeters
+
+    Returns:
+        BMIResult with BMI value, category, and recommendations
+
+    Example:
+        >>> result = calculate_bmi(weight_kg=70, height_cm=175)
+        >>> print(f"BMI: {result.bmi:.1f} - {result.category.value}")
+        BMI: 22.9 - normal
+
+    Raises:
+        ValueError: If weight or height is not positive
+    """
+    if weight_kg <= 0 or height_cm <= 0:
+        raise ValueError("Weight and height must be positive values")
+
+    height_m = height_cm / 100
+    bmi = weight_kg / (height_m ** 2)
+
+    # Classify BMI according to WHO guidelines
+    if bmi < 18.5:
+        category = BMICategory.UNDERWEIGHT
+        is_healthy = False
+        risk_level = "Increased risk of malnutrition"
+        recommendations = [
+            "Consider consulting a nutritionist",
+            "Focus on nutrient-dense foods",
+            "Monitor for signs of nutritional deficiency",
+        ]
+    elif bmi < 25.0:
+        category = BMICategory.NORMAL
+        is_healthy = True
+        risk_level = "Low risk"
+        recommendations = [
+            "Maintain current healthy lifestyle",
+            "Regular physical activity recommended",
+            "Balanced diet with adequate nutrients",
+        ]
+    elif bmi < 30.0:
+        category = BMICategory.OVERWEIGHT
+        is_healthy = False
+        risk_level = "Increased risk of chronic conditions"
+        recommendations = [
+            "Consider lifestyle modifications",
+            "Increase physical activity",
+            "Review dietary habits",
+            "Monitor blood pressure and glucose",
+        ]
+    elif bmi < 35.0:
+        category = BMICategory.OBESE_CLASS_1
+        is_healthy = False
+        risk_level = "High risk of chronic conditions"
+        recommendations = [
+            "Medical consultation recommended",
+            "Structured weight loss program advised",
+            "Regular monitoring of cardiovascular markers",
+            "Screen for sleep apnea and diabetes",
+        ]
+    elif bmi < 40.0:
+        category = BMICategory.OBESE_CLASS_2
+        is_healthy = False
+        risk_level = "Very high risk of chronic conditions"
+        recommendations = [
+            "Urgent medical consultation recommended",
+            "Consider medically supervised weight loss",
+            "Regular cardiovascular and metabolic screening",
+            "Evaluate for comorbidities",
+        ]
+    else:
+        category = BMICategory.OBESE_CLASS_3
+        is_healthy = False
+        risk_level = "Extremely high risk - severe health concerns"
+        recommendations = [
+            "Immediate medical evaluation recommended",
+            "Consider multidisciplinary weight management",
+            "Screen for obesity-related complications",
+            "Evaluate surgical intervention options if appropriate",
+        ]
+
+    return BMIResult(
+        bmi=round(bmi, 1),
+        category=category,
+        is_healthy=is_healthy,
+        risk_level=risk_level,
+        recommendations=recommendations,
+    )
+
+
+@dataclass
+class MAPResult:
+    """Mean Arterial Pressure calculation result.
+
+    Attributes:
+        map_value: Calculated MAP in mmHg
+        status: Clinical interpretation
+        is_normal: Whether MAP is in normal range (70-100 mmHg)
+    """
+    map_value: float
+    status: str
+    is_normal: bool
+
+
+def calculate_map(
+    systolic: int,
+    diastolic: int,
+) -> MAPResult:
+    """Calculate Mean Arterial Pressure (MAP).
+
+    MAP is an important indicator of tissue perfusion. Normal range
+    is 70-100 mmHg. Values outside this range may indicate inadequate
+    or excessive perfusion pressure.
+
+    Args:
+        systolic: Systolic blood pressure in mmHg
+        diastolic: Diastolic blood pressure in mmHg
+
+    Returns:
+        MAPResult with MAP value and clinical interpretation
+
+    Example:
+        >>> result = calculate_map(systolic=120, diastolic=80)
+        >>> print(f"MAP: {result.map_value:.0f} mmHg - {result.status}")
+        MAP: 93 mmHg - Normal
+
+    Formula:
+        MAP = (SBP + 2 * DBP) / 3
+    """
+    if systolic <= 0 or diastolic <= 0:
+        raise ValueError("Blood pressure values must be positive")
+
+    if diastolic >= systolic:
+        raise ValueError("Systolic must be greater than diastolic")
+
+    map_value = (systolic + 2 * diastolic) / 3
+
+    if map_value < 60:
+        status = "Critically low - risk of organ hypoperfusion"
+        is_normal = False
+    elif map_value < 70:
+        status = "Low - monitor closely"
+        is_normal = False
+    elif map_value <= 100:
+        status = "Normal"
+        is_normal = True
+    elif map_value <= 110:
+        status = "Elevated - monitor for hypertension"
+        is_normal = False
+    else:
+        status = "High - increased cardiovascular risk"
+        is_normal = False
+
+    return MAPResult(
+        map_value=round(map_value, 1),
+        status=status,
+        is_normal=is_normal,
+    )
+
+
+def calculate_pulse_pressure(systolic: int, diastolic: int) -> Dict:
+    """Calculate pulse pressure and assess cardiovascular risk.
+
+    Pulse pressure (PP) is the difference between systolic and diastolic
+    blood pressure. Normal range is 40-60 mmHg. Wide PP may indicate
+    arterial stiffness; narrow PP may indicate reduced cardiac output.
+
+    Args:
+        systolic: Systolic blood pressure in mmHg
+        diastolic: Diastolic blood pressure in mmHg
+
+    Returns:
+        Dictionary with pulse pressure value and risk assessment
+
+    Example:
+        >>> result = calculate_pulse_pressure(120, 80)
+        >>> print(f"PP: {result['pulse_pressure']} - {result['status']}")
+        PP: 40 - Normal
+    """
+    if systolic <= 0 or diastolic <= 0:
+        raise ValueError("Blood pressure values must be positive")
+
+    pulse_pressure = systolic - diastolic
+
+    if pulse_pressure < 25:
+        status = "Narrow - possible reduced cardiac output"
+        risk = "elevated"
+    elif pulse_pressure < 40:
+        status = "Low normal"
+        risk = "low"
+    elif pulse_pressure <= 60:
+        status = "Normal"
+        risk = "low"
+    elif pulse_pressure <= 80:
+        status = "Wide - possible arterial stiffness"
+        risk = "moderate"
+    else:
+        status = "Very wide - increased cardiovascular risk"
+        risk = "high"
+
+    return {
+        "pulse_pressure": pulse_pressure,
+        "status": status,
+        "risk": risk,
+        "unit": "mmHg",
+    }
