@@ -381,10 +381,15 @@ def check_taper_safety(
     max_pct = guidelines["max_reduction_pct"]
     min_days = guidelines["min_step_days"]
 
+    last_index = len(schedule.steps) - 1
     for i in range(1, len(schedule.steps)):
         prev = schedule.steps[i - 1].dose_mg
         curr = schedule.steps[i].dose_mg
-        if prev > 0:
+        # The final step always represents reaching the target dose or full
+        # discontinuation, so a large relative drop there is expected (e.g.
+        # a residual 0.5mg -> 0mg step is always a "100% reduction") and is
+        # not a guideline violation.
+        if prev > 0 and i != last_index:
             reduction = (prev - curr) / prev * 100
             if reduction > max_pct + 1:  # +1 for rounding tolerance
                 issues.append(
@@ -425,10 +430,14 @@ def _assess_risk(
 
     if med_key in TAPER_REQUIRED_MEDICATIONS:
         guidelines = TAPER_REQUIRED_MEDICATIONS[med_key]
+        last_index = len(steps) - 1
         for i in range(1, len(steps)):
             prev = steps[i - 1].dose_mg
             curr = steps[i].dose_mg
-            if prev > 0:
+            # Skip the final step: reaching the target dose (often 0) is
+            # expected to look like a large relative drop and is not itself
+            # a guideline violation.
+            if prev > 0 and i != last_index:
                 reduction = (prev - curr) / prev * 100
                 if reduction > guidelines["max_reduction_pct"] * 1.5:
                     return TaperRisk.UNSAFE
