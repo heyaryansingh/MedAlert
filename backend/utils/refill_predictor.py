@@ -76,7 +76,9 @@ class RefillPredictor:
         if effective_daily_dose > 0:
             days_remaining = supply.current_quantity / effective_daily_dose
         else:
-            days_remaining = float('inf')
+            # Zero consumption (e.g. adherence_rate == 0): cap instead of inf
+            # so date arithmetic below stays valid
+            days_remaining = 365.0
 
         # Adjust for historical consumption patterns
         if len(supply.refill_history) >= 2:
@@ -290,7 +292,10 @@ class RefillPredictor:
             confidence *= 0.8
 
         # Reduce confidence for recent medication (< 60 days)
-        days_since_start = (datetime.now() - supply.refill_history[0]).days
+        if supply.refill_history:
+            days_since_start = (datetime.now() - supply.refill_history[0]).days
+        else:
+            days_since_start = (datetime.now() - supply.last_refill_date).days
         if days_since_start < 60:
             confidence *= 0.75
 
