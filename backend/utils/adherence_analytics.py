@@ -256,6 +256,9 @@ def calculate_streaks(logs: List[MedicationLog]) -> Tuple[int, int]:
             # Check if this is consecutive day
             if last_date is None or (log_date - last_date).days == 1:
                 temp_streak += 1
+            elif (log_date - last_date).days == 0:
+                # Same-day dose (multi-dose regimen) doesn't extend or break the day streak
+                pass
             else:
                 # Streak broken
                 longest_streak = max(longest_streak, temp_streak)
