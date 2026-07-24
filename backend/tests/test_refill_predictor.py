@@ -87,3 +87,21 @@ class TestAdherenceIssues:
             make_supply(adherence_rate=0.95)
         )
         assert issue is None
+
+    def test_missed_doses_uses_consumed_not_remaining_quantity(self):
+        # Regression: missed_doses previously subtracted current_quantity
+        # (pills remaining) instead of pills actually consumed, producing
+        # a nonsensical negative estimate for a patient who took nothing.
+        # Refill 10 days ago with a 30-day / 30-pill supply, still full:
+        # consumed = 0, ideal = 10 days * 1/day = 10, so missed = 10.
+        issue = RefillPredictor().detect_adherence_issues(
+            make_supply(
+                current_quantity=30,
+                days_supply=30,
+                daily_dose=1.0,
+                last_refill_date=datetime.now() - timedelta(days=10),
+                adherence_rate=0.4,
+            )
+        )
+        assert issue is not None
+        assert issue["missed_doses_estimate"] == 10

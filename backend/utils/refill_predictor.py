@@ -236,7 +236,8 @@ class RefillPredictor:
             # Calculate impact
             ideal_consumption = supply.daily_dose * \
                               (datetime.now() - supply.last_refill_date).days
-            actual_consumption = supply.current_quantity
+            starting_quantity = supply.daily_dose * supply.days_supply
+            actual_consumption = starting_quantity - supply.current_quantity
             missed_doses = ideal_consumption - actual_consumption
 
             return {
