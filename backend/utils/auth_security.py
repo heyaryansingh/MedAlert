@@ -10,18 +10,47 @@ Functions:
     decode_access_token: Decode and verify a JWT token
 """
 
+import logging
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
 
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
+logger = logging.getLogger(__name__)
+
 # bcrypt-based password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+def _load_jwt_secret() -> str:
+    """Read the JWT signing secret, generating an ephemeral one if unset.
+
+    A hardcoded fallback secret is an authentication bypass: the value lives in
+    the source tree, so anyone can mint a token with any ``sub`` and any
+    ``role``, including a doctor's. Generating a random per-process secret
+    instead means an unconfigured deployment invalidates tokens on restart
+    (and across workers) rather than silently accepting forged ones.
+
+    Returns:
+        The configured secret, or a fresh random one for this process.
+    """
+    secret = os.getenv("MEDALERT_JWT_SECRET")
+    if secret:
+        return secret
+
+    logger.warning(
+        "MEDALERT_JWT_SECRET is not set; generating an ephemeral signing key. "
+        "Issued tokens will not survive a restart and will not validate across "
+        "processes. Set MEDALERT_JWT_SECRET before deploying."
+    )
+    return secrets.token_urlsafe(32)
+
+
 # JWT configuration - uses env vars with safe defaults for development
-JWT_SECRET_KEY = os.getenv("MEDALERT_JWT_SECRET", "dev-secret-change-in-production")
+JWT_SECRET_KEY = _load_jwt_secret()
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("MEDALERT_JWT_EXPIRE_MINUTES", "60"))
 
