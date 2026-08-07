@@ -101,8 +101,13 @@ class PolypharmacyRiskScorer:
     POLYPHARMACY_THRESHOLD = 5
     HYPERPOLYPHARMACY_THRESHOLD = 10
 
+    @staticmethod
+    def _normalize(generic_name: str) -> str:
+        """Canonical form of a drug name, used for both lookup and reporting."""
+        return generic_name.strip().lower()
+
     def _lookup_burden(self, generic_name: str) -> int:
-        return _ANTICHOLINERGIC_BURDEN.get(generic_name.strip().lower(), _DEFAULT_BURDEN)
+        return _ANTICHOLINERGIC_BURDEN.get(self._normalize(generic_name), _DEFAULT_BURDEN)
 
     def score(self, medications: List[MedicationEntry]) -> PolypharmacyRiskResult:
         """Compute a polypharmacy risk assessment for a medication list.
@@ -118,8 +123,12 @@ class PolypharmacyRiskScorer:
         """
         medication_count = len(medications)
 
+        # Report the same normalized name the lookup used. Reporting the raw
+        # name meant "Diphenhydramine" and " diphenhydramine" scored
+        # identically but survived the later set() dedup as two entries, so
+        # the recommendation listed the same drug twice.
         burdens = [
-            (med.generic_name, self._lookup_burden(med.generic_name))
+            (self._normalize(med.generic_name), self._lookup_burden(med.generic_name))
             for med in medications
         ]
         total_burden = sum(b for _, b in burdens)
