@@ -213,9 +213,24 @@ def assess_qt_risk(
         "critical".
     """
     risk_factors = risk_factors or []
+
+    # A medication list that repeats a drug — "Amiodarone" alongside
+    # "amiodarone", or the same entry pulled from two prescriptions — scored
+    # that single drug twice and tripped the "multiple known QT-prolonging
+    # drugs" alert on its own. Count each distinct drug once.
+    seen: set = set()
+    unique_medications = []
+    for med in medications:
+        name = med.strip()
+        key = name.lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique_medications.append(name)
+
     drug_risks = [
         DrugQtRisk(drug=med, risk_category=get_drug_qt_risk(med))
-        for med in medications
+        for med in unique_medications
     ]
 
     score = 0
