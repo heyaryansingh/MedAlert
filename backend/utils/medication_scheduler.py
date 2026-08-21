@@ -112,9 +112,8 @@ def calculate_dose_times(
         List of dose times in HH:MM format
 
     Example:
-        >>> times = calculate_dose_times(3, "07:00", "22:00")
-        >>> print(times)
-        ["07:00", "13:00", "19:00"]
+        >>> calculate_dose_times(3, "07:00", "22:00")
+        ['07:00', '12:00', '17:00']
     """
     if frequency < 1 or frequency > 6:
         raise ValueError("Frequency must be between 1 and 6 doses per day")
@@ -143,22 +142,27 @@ def calculate_dose_times(
             return [meal_times["breakfast"]]
         return [wake_time]
 
-    # Distribute evenly throughout waking hours
-    interval = waking_minutes // (frequency + 1)
+    # Distribute evenly throughout waking hours, starting at wake time. Dosing
+    # from wake + interval instead pushed the first dose of a twice-daily
+    # medication five hours past waking, and made adding a dose move the first
+    # one later - a once-daily medication is already taken at wake time.
+    interval = waking_minutes // frequency
     times = []
 
-    for i in range(1, frequency + 1):
-        minutes = wake_minutes + (interval * i)
-        if minutes >= 24 * 60:
-            minutes -= 24 * 60
-        hours = minutes // 60
-        mins = minutes % 60
-        times.append(f"{hours:02d}:{mins:02d}")
+    for i in range(frequency):
+        minutes = (wake_minutes + interval * i) % (24 * 60)
+        times.append(f"{minutes // 60:02d}:{minutes % 60:02d}")
 
     # Adjust for meal timing if applicable
     if meal_timing == MealTiming.WITH_FOOD and frequency <= 3:
-        meal_list = list(meal_times.values())[:frequency]
-        return meal_list
+        # Two doses a day belong at the two meals furthest apart. Taking the
+        # first `frequency` meals gave breakfast and lunch, 4.5 hours apart and
+        # then a 19.5 hour gap.
+        if frequency == 1:
+            return [meal_times["breakfast"]]
+        if frequency == 2:
+            return [meal_times["breakfast"], meal_times["dinner"]]
+        return [meal_times["breakfast"], meal_times["lunch"], meal_times["dinner"]]
 
     return times
 
