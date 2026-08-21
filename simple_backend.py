@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import List, Optional
 import os
@@ -23,8 +23,16 @@ app.add_middleware(
 
 # Simple request models
 class ChatbotMessageRequest(BaseModel):
-    patient_id: str
-    message: str
+    """A patient message headed for the triage responder.
+
+    The bounds are the trust boundary for this endpoint: the body arrives
+    unauthenticated, so an empty message would be triaged as if the patient
+    had said nothing, and an unbounded one would be scanned for keywords in
+    full on every request.
+    """
+
+    patient_id: str = Field(..., min_length=1, max_length=128)
+    message: str = Field(..., min_length=1, max_length=4000)
 
 @app.get("/")
 async def read_root():
@@ -87,8 +95,10 @@ async def chatbot_message(request: ChatbotMessageRequest):
         
     except Exception as e:
         print(f"Error in chatbot_message endpoint: {e}")
+        # Reporting a failed triage as 200 tells the caller the reply below is
+        # a real answer to the symptoms they sent, which it is not.
         return JSONResponse(
-            status_code=200,
+            status_code=500,
             content={
                 "_id": "error_message_id",
                 "sender": "ai",

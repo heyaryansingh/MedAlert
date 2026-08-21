@@ -36,7 +36,7 @@ from typing import List, Optional
 from datetime import datetime, timezone
 import shutil
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary, DoctorNote, Patient
 from backend.dependencies import get_database
@@ -116,8 +116,16 @@ async def upload_image(
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to record image upload in DB")
 
 class ChatbotMessageRequest(BaseModel):
-    patient_id: str
-    message: str
+    """A patient message headed for the triage responder.
+
+    The bounds are the trust boundary for this endpoint: the body arrives
+    unauthenticated, so an empty message would be triaged as if the patient
+    had said nothing, and an unbounded one would be scanned for keywords in
+    full on every request.
+    """
+
+    patient_id: str = Field(..., min_length=1, max_length=128)
+    message: str = Field(..., min_length=1, max_length=4000)
 
 @router.post("/patient/chatbot_message")
 async def chatbot_message(request: ChatbotMessageRequest):
@@ -176,8 +184,10 @@ async def chatbot_message(request: ChatbotMessageRequest):
         
     except Exception as e:
         print(f"Error in chatbot_message endpoint: {e}")
+        # Reporting a failed triage as 200 tells the caller the reply below is
+        # a real answer to the symptoms they sent, which it is not.
         return JSONResponse(
-            status_code=200,
+            status_code=500,
             content={
                 "_id": "error_message_id",
                 "sender": "ai",
