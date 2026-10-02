@@ -280,15 +280,22 @@ def calculate_pediatric_dose(
     Returns:
         Estimated pediatric dose in milligrams.
     """
+    # Never fall back to the full adult dose for a child: fail loudly instead.
     if method == "clark" and child_weight_kg is not None:
+        if child_weight_kg <= 0:
+            raise ValueError("child_weight_kg must be positive")
         # Clark's rule: (weight_lb / 150) * adult_dose
         weight_lb = child_weight_kg * 2.205
         return round((weight_lb / 150) * adult_dose_mg, 1)
     elif method == "young" and child_age_years is not None:
+        if child_age_years < 0:
+            raise ValueError("child_age_years must not be negative")
         # Young's rule: (age / (age + 12)) * adult_dose
         return round((child_age_years / (child_age_years + 12)) * adult_dose_mg, 1)
-    else:
-        return adult_dose_mg
+    raise ValueError(
+        f"Cannot calculate pediatric dose: method {method!r} requires "
+        "child_weight_kg (clark) or child_age_years (young)"
+    )
 
 
 def therapeutic_range_check(

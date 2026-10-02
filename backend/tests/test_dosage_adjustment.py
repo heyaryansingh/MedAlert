@@ -106,9 +106,17 @@ class TestCalculatePediatricDose:
         dose = calculate_pediatric_dose(100, child_age_years=6, method="young")
         assert dose == pytest.approx(33.3)
 
-    def test_missing_required_param_returns_adult_dose(self):
-        dose = calculate_pediatric_dose(100, method="clark")
-        assert dose == 100
+    def test_missing_required_param_raises_instead_of_adult_dose(self):
+        with pytest.raises(ValueError):
+            calculate_pediatric_dose(100, method="clark")
+        with pytest.raises(ValueError):
+            calculate_pediatric_dose(100, child_age_years=6, method="clark")
+        with pytest.raises(ValueError):
+            calculate_pediatric_dose(100, child_weight_kg=20, method="bogus")
+
+    def test_nonpositive_weight_raises(self):
+        with pytest.raises(ValueError):
+            calculate_pediatric_dose(100, child_weight_kg=0, method="clark")
 
 
 class TestTherapeuticRangeCheck:
