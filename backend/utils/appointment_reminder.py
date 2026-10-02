@@ -414,7 +414,9 @@ def find_next_available_slot(
 
         if is_available:
             # Check it's during reasonable hours (8am - 6pm)
-            if 8 <= candidate.hour < 18:
+            # (the whole appointment must end by 6pm, not just start before it)
+            closing = candidate.replace(hour=18, minute=0, second=0, microsecond=0)
+            if candidate.hour >= 8 and candidate_end <= closing:
                 return candidate
 
         # Move to next potential slot
