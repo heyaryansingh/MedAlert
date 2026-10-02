@@ -102,7 +102,7 @@ class SideEffectsTracker:
             onset_date = datetime.now()
 
         effect = SideEffect(
-            effect_id=f"{patient_id}_{medication_name}_{onset_date.timestamp()}",
+            effect_id=f"{patient_id}_{medication_name}_{onset_date.timestamp()}_{len(self.effects)}",
             patient_id=patient_id,
             medication_name=medication_name,
             medication_dosage=medication_dosage,
