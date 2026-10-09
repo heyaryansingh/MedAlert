@@ -91,7 +91,11 @@ async def upload_image(
     upload_dir = f"simulated_data/patient_images/{str(patient_id)}"
     os.makedirs(upload_dir, exist_ok=True)
 
-    file_location = f"{upload_dir}/{file.filename}"
+    # filename is client-controlled: "../../x.py" would escape the patient dir.
+    safe_name = os.path.basename((file.filename or "").replace("\\", "/"))
+    if not safe_name or safe_name in (".", ".."):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
+    file_location = f"{upload_dir}/{safe_name}"
     try:
         with open(file_location, "wb+") as file_object:
             shutil.copyfileobj(file.file, file_object)
