@@ -163,7 +163,7 @@ class HealthInsightsGenerator:
                     ))
 
             # Trend insights
-            if abs(recent_avg - earlier_avg) > earlier_avg * 0.1:  # 10% change
+            if earlier_avg != 0 and abs(recent_avg - earlier_avg) > abs(earlier_avg) * 0.1:  # 10% change
                 if recent_avg > earlier_avg:
                     trend_direction = "increasing"
                     insight_type = InsightType.NEGATIVE_TREND if normal_range and recent_avg > normal_range[1] else InsightType.PATTERN_DETECTED
@@ -171,7 +171,7 @@ class HealthInsightsGenerator:
                     trend_direction = "decreasing"
                     insight_type = InsightType.POSITIVE_TREND if normal_range and earlier_avg > normal_range[1] else InsightType.PATTERN_DETECTED
 
-                change_pct = ((recent_avg - earlier_avg) / earlier_avg) * 100
+                change_pct = ((recent_avg - earlier_avg) / abs(earlier_avg)) * 100
 
                 insights.append(HealthInsight(
                     insight_id=f"{patient_id}_{vital_type}_trend_{datetime.now().timestamp()}",
