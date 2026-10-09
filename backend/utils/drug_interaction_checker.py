@@ -79,6 +79,7 @@ class DrugInteractionChecker:
     def __init__(self):
         self.interaction_db = self._initialize_interaction_database()
         self.drug_classes = self._initialize_drug_classes()
+        self.class_interaction_db = self._initialize_class_interactions()
 
     def _initialize_interaction_database(self) -> Dict[Tuple[str, str], DrugInteraction]:
         """Initialize simplified drug interaction database."""
@@ -166,6 +167,45 @@ class DrugInteractionChecker:
             "calcium_channel_blockers": {"amlodipine", "diltiazem", "verapamil"},
         }
 
+    def _initialize_class_interactions(self) -> Dict[Tuple[str, str], DrugInteraction]:
+        """Class-level interactions applied when no drug-specific entry exists.
+
+        The drug-pair table only lists one example per hazard, so without
+        this an SSRI + MAOI combination other than fluoxetine + phenelzine
+        would be reported as interaction-free.
+        """
+        return {
+            ("ssri", "maoi"): DrugInteraction(
+                drug1="ssri",
+                drug2="maoi",
+                severity=InteractionSeverity.CONTRAINDICATED,
+                interaction_type=InteractionType.PHARMACODYNAMIC,
+                description="Risk of serotonin syndrome",
+                mechanism="Excessive serotonergic activity",
+                clinical_effects=["Serotonin syndrome", "Hyperthermia", "Seizures", "Death"],
+                management="CONTRAINDICATED. Observe the full washout period before switching between these classes.",
+                references=["Black Box Warning", "FDA"]
+            ),
+            ("anticoagulants", "nsaids"): DrugInteraction(
+                drug1="anticoagulants",
+                drug2="nsaids",
+                severity=InteractionSeverity.MODERATE,
+                interaction_type=InteractionType.PHARMACODYNAMIC,
+                description="Increased bleeding risk",
+                mechanism="NSAIDs inhibit platelet function and can injure gastric mucosa",
+                clinical_effects=["GI bleeding", "Prolonged bleeding time"],
+                management="Avoid if possible. Consider acetaminophen; monitor for bleeding.",
+                references=["FDA Drug Interactions"]
+            ),
+        }
+
+    def _is_known(self, drug: str) -> bool:
+        drug = drug.strip().lower()
+        return bool(self._classes_of(drug)) or any(drug in pair for pair in self.interaction_db)
+
+    def _classes_of(self, drug: str) -> List[str]:
+        return [c for c, members in self.drug_classes.items() if drug in members]
+
     def check_interactions(self, medications: List[Medication]) -> List[DrugInteraction]:
         """
         Check for interactions between multiple medications.
@@ -182,8 +222,8 @@ class DrugInteractionChecker:
         for i, med1 in enumerate(medications):
             for med2 in medications[i+1:]:
                 interaction = self._check_pair(
-                    med1.generic_name.lower(),
-                    med2.generic_name.lower()
+                    med1.generic_name.strip().lower(),
+                    med2.generic_name.strip().lower()
                 )
                 if interaction:
                     interactions.append(interaction)
@@ -221,6 +261,24 @@ class DrugInteractionChecker:
                 management=interaction.management,
                 references=interaction.references
             )
+        for class1 in self._classes_of(drug1):
+            for class2 in self._classes_of(drug2):
+                template = (
+                    self.class_interaction_db.get((class1, class2))
+                    or self.class_interaction_db.get((class2, class1))
+                )
+                if template:
+                    return DrugInteraction(
+                        drug1=drug1,
+                        drug2=drug2,
+                        severity=template.severity,
+                        interaction_type=template.interaction_type,
+                        description=template.description,
+                        mechanism=template.mechanism,
+                        clinical_effects=template.clinical_effects,
+                        management=template.management,
+                        references=template.references
+                    )
         return None
 
     def check_class_interactions(self, medications: List[Medication]) -> List[str]:
@@ -235,7 +293,7 @@ class DrugInteractionChecker:
 
         for med in medications:
             for drug_class, members in self.drug_classes.items():
-                if med.generic_name.lower() in members:
+                if med.generic_name.strip().lower() in members:
                     if drug_class not in class_counts:
                         class_counts[drug_class] = []
                     class_counts[drug_class].append(med.generic_name)
@@ -258,6 +316,9 @@ class DrugInteractionChecker:
         """
         interactions = self.check_interactions(medications)
         class_warnings = self.check_class_interactions(medications)
+        unrecognized = [
+            m.generic_name for m in medications if not self._is_known(m.generic_name)
+        ]
 
         # Count by severity
         severity_counts = {
@@ -312,13 +373,17 @@ class DrugInteractionChecker:
                 for i in interactions
             ],
             "class_warnings": class_warnings,
-            "recommendations": self._generate_recommendations(interactions, class_warnings)
+            "unrecognized_medications": unrecognized,
+            "recommendations": self._generate_recommendations(
+                interactions, class_warnings, unrecognized
+            )
         }
 
     def _generate_recommendations(
         self,
         interactions: List[DrugInteraction],
-        class_warnings: List[str]
+        class_warnings: List[str],
+        unrecognized: Optional[List[str]] = None
     ) -> List[str]:
         """Generate actionable recommendations based on findings."""
         recommendations = []
@@ -353,8 +418,15 @@ class DrugInteractionChecker:
                 "to optimize safety and effectiveness."
             )
 
+        # Unknown drugs: absence of a hit is not evidence of safety
+        if unrecognized:
+            recommendations.append(
+                "Not in the interaction database: " + ", ".join(unrecognized)
+                + ". Have a pharmacist verify interactions for these medications."
+            )
+
         # No interactions
-        if not interactions and not class_warnings:
+        if not interactions and not class_warnings and not unrecognized:
             recommendations.append(
                 "✅ No significant interactions detected. Continue as prescribed."
             )
