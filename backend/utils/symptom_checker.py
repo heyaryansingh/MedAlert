@@ -45,6 +45,10 @@ class CareLevel(Enum):
     PHARMACY = "pharmacy"
 
 
+# Most to least urgent (enum values are strings, so they can't be compared)
+_URGENCY_ORDER = list(UrgencyLevel)
+
+
 @dataclass
 class Symptom:
     """Represents a reported symptom."""
@@ -235,19 +239,13 @@ class SymptomChecker:
             if symptom_lower in self._red_flags:
                 flag_urgency = self._red_flags[symptom_lower]
                 red_flags.append(symptom.name)
-                if flag_urgency.value < max_urgency.value or (
-                    flag_urgency == UrgencyLevel.EMERGENCY
-                ):
-                    max_urgency = flag_urgency
+                max_urgency = min(max_urgency, flag_urgency, key=_URGENCY_ORDER.index)
 
             # Partial match for red flags
             for flag, flag_urgency in self._red_flags.items():
                 if flag in symptom_lower and symptom_lower not in red_flags:
                     red_flags.append(symptom.name)
-                    if flag_urgency == UrgencyLevel.EMERGENCY:
-                        max_urgency = flag_urgency
-                    elif flag_urgency.value < max_urgency.value:
-                        max_urgency = flag_urgency
+                    max_urgency = min(max_urgency, flag_urgency, key=_URGENCY_ORDER.index)
 
         # Calculate base urgency score
         for symptom in symptoms:
