@@ -162,17 +162,22 @@ class RefillPredictor:
             List of refill conflicts with consolidation opportunities
         """
         conflicts = []
+        clustered = set()
 
         # Group by predicted date (within 3 days)
         for i, pred1 in enumerate(predictions):
+            if i in clustered:
+                continue
             cluster = [pred1]
 
-            for pred2 in predictions[i+1:]:
+            for j in range(i + 1, len(predictions)):
+                pred2 = predictions[j]
                 days_diff = abs((pred1.predicted_refill_date -
                                pred2.predicted_refill_date).days)
 
-                if days_diff <= 3:
+                if days_diff <= 3 and j not in clustered:
                     cluster.append(pred2)
+                    clustered.add(j)
 
             if len(cluster) > 1:
                 conflicts.append({

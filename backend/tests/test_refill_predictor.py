@@ -6,6 +6,7 @@ import pytest
 
 from utils.refill_predictor import (
     MedicationSupply,
+    RefillPrediction,
     RefillPredictor,
     RefillUrgency,
 )
@@ -105,3 +106,15 @@ class TestAdherenceIssues:
         )
         assert issue is not None
         assert issue["missed_doses_estimate"] == 10
+
+
+class TestRefillConflicts:
+    def test_each_medication_is_in_one_conflict_only(self):
+        # Three meds due the same day used to yield [a,b,c] and a duplicate [b,c].
+        now = datetime.now()
+        preds = [
+            RefillPrediction(m, m, now, 1, RefillUrgency.IMMEDIATE, 1.0, "", 1)
+            for m in "abc"
+        ]
+        conflicts = RefillPredictor().identify_refill_conflicts(preds)
+        assert [c["medications"] for c in conflicts] == [["a", "b", "c"]]
