@@ -5,7 +5,7 @@ Implements AES-256 encryption with secure key management.
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 import base64
 import os
@@ -31,21 +31,24 @@ class HealthDataEncryption:
         self.cipher = Fernet(self.key)
 
     @staticmethod
-    def generate_key_from_password(password: str, salt: Optional[bytes] = None) -> bytes:
+    def generate_key_from_password(password: str, salt: bytes) -> bytes:
         """
         Derive encryption key from password using PBKDF2.
 
         Args:
             password: User password
-            salt: Salt for key derivation (16 bytes). If None, generates new salt.
+            salt: Salt for key derivation (at least 16 bytes, e.g. os.urandom(16)).
+                  Store it alongside the data: the same password and salt are
+                  required to re-derive the key, so a discarded random salt
+                  makes everything encrypted with the key unrecoverable.
 
         Returns:
             Derived key (32 bytes, base64 encoded)
         """
-        if salt is None:
-            salt = os.urandom(16)
+        if not isinstance(salt, (bytes, bytearray)) or len(salt) < 16:
+            raise ValueError("salt must be at least 16 bytes")
 
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=salt,
@@ -122,14 +125,26 @@ class HealthDataEncryption:
         decrypted_data = data.copy()
 
         for field in fields:
-            if field in decrypted_data and decrypted_data[field]:
-                try:
-                    decrypted_data[field] = self.decrypt(decrypted_data[field])
-                except ValueError:
-                    # Field might not be encrypted - leave as is
-                    pass
+            value = decrypted_data.get(field)
+            # Plaintext fields (never encrypted) are left as is. A value that
+            # is one of our tokens but fails to decrypt (wrong key, tampering)
+            # raises instead of handing ciphertext back as if it were data.
+            if value and _is_encrypted_token(value):
+                decrypted_data[field] = self.decrypt(value)
 
         return decrypted_data
+
+
+def _is_encrypted_token(value) -> bool:
+    """True if value has the shape of HealthDataEncryption.encrypt output."""
+    if not isinstance(value, str):
+        return False
+    try:
+        inner = base64.urlsafe_b64decode(value.encode())
+    except (ValueError, TypeError):
+        return False
+    # Fernet tokens are base64 of a payload whose version byte is 0x80
+    return inner.startswith(b"gAAAAA")
 
 
 # Sensitive fields that should always be encrypted
