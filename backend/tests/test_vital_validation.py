@@ -207,3 +207,7 @@ class TestNonFiniteInputs:
     def test_nan_bmi_rejected(self):
         with pytest.raises(ValueError):
             calculate_bmi(float("nan"), 170)
+
+
+def test_trend_from_zero_baseline_is_not_stable():
+    assert get_vital_trend([0, 0, 5, 9]) == "increasing"

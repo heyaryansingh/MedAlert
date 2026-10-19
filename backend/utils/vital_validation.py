@@ -275,9 +275,11 @@ def get_vital_trend(
     second_half = sum(values[len(values)//2:]) / (len(values) - len(values)//2)
 
     if first_half == 0:
-        return "stable"
-
-    pct_change = ((second_half - first_half) / first_half) * 100
+        if second_half == 0:
+            return "stable"
+        pct_change = math.copysign(float("inf"), second_half)
+    else:
+        pct_change = ((second_half - first_half) / first_half) * 100
 
     if pct_change > threshold_pct:
         return "increasing"
