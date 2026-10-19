@@ -255,7 +255,7 @@ class EmergencyContactManager:
         # For critical alerts, also include medical professionals
         if severity == AlertSeverity.CRITICAL:
             medical = self.get_medical_professionals()
-            contacts = list(dict.fromkeys(medical + contacts))  # Dedupe, preserve order
+            contacts = medical + [c for c in contacts if c not in medical]  # Dedupe, preserve order
 
         # Determine how many contacts to notify based on severity
         if severity == AlertSeverity.CRITICAL:
@@ -385,7 +385,8 @@ def check_vital_thresholds_and_alert(
         "heart_rate": (40, 50, 100, 150),
         "blood_pressure_systolic": (70, 90, 140, 180),
         "blood_pressure_diastolic": (40, 50, 90, 110),
-        "oxygen_saturation": (85, 92, 100, 100),  # Can't be too high
+        # No upper bound: 100% is normal, and >= comparisons would flag it critical
+        "oxygen_saturation": (85, 92, float("inf"), float("inf")),
         "temperature": (95.0, 96.8, 99.5, 103.0),  # In Fahrenheit
         "respiratory_rate": (8, 12, 20, 30),
     }
