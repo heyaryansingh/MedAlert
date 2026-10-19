@@ -197,3 +197,13 @@ class TestCalculatePulsePressure:
     def test_non_positive_values_raise(self):
         with pytest.raises(ValueError):
             calculate_pulse_pressure(0, 80)
+
+
+class TestNonFiniteInputs:
+    def test_nan_vital_rejected(self):
+        with pytest.raises(ValueError):
+            validate_vital_signs(heart_rate=float("nan"))
+
+    def test_nan_bmi_rejected(self):
+        with pytest.raises(ValueError):
+            calculate_bmi(float("nan"), 170)

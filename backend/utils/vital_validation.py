@@ -16,6 +16,7 @@ Example:
     >>> print(result.alerts)  # ["Elevated heart rate", "Elevated temperature"]
 """
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -208,6 +209,9 @@ def validate_vital_signs(
         if vital_range is None:
             continue
 
+        if not math.isfinite(value):
+            raise ValueError(f"{vital_name} must be a finite number")
+
         status, message = _classify_vital(float(value), vital_range)
 
         # Format display name
@@ -380,7 +384,7 @@ def calculate_bmi(
     Raises:
         ValueError: If weight or height is not positive
     """
-    if weight_kg <= 0 or height_cm <= 0:
+    if not (weight_kg > 0 and height_cm > 0 and math.isfinite(weight_kg) and math.isfinite(height_cm)):
         raise ValueError("Weight and height must be positive values")
 
     height_m = height_cm / 100
