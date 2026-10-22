@@ -225,6 +225,10 @@ def generate_percentage_taper(
         raise ValueError("Reduction percentage must be between 1 and 50")
     if starting_dose_mg <= 0:
         raise ValueError("Starting dose must be positive")
+    if target_dose_mg < 0:
+        raise ValueError("Target dose cannot be negative")
+    if starting_dose_mg <= target_dose_mg:
+        raise ValueError("Starting dose must exceed target dose")
 
     steps = []
     current_dose = starting_dose_mg

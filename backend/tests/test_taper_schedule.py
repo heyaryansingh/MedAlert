@@ -114,6 +114,14 @@ class TestGeneratePercentageTaper:
         with pytest.raises(ValueError):
             generate_percentage_taper(starting_dose_mg=0.0, reduction_pct=10.0)
 
+    @pytest.mark.parametrize("start,target", [(5.0, 10.0), (10.0, 10.0), (10.0, -1.0)])
+    def test_target_not_below_start_or_negative_raises(self, start, target):
+        # Previously returned a one-step "taper" that raised the dose to target.
+        with pytest.raises(ValueError):
+            generate_percentage_taper(
+                starting_dose_mg=start, target_dose_mg=target, reduction_pct=10.0
+            )
+
 
 class TestGenerateCustomTaper:
     def test_basic_custom_schedule(self):
