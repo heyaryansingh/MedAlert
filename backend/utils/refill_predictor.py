@@ -91,6 +91,10 @@ class RefillPredictor:
             days_remaining = (days_remaining * 0.7) + \
                            ((avg_refill_interval - days_since_last_refill) * 0.3)
 
+        # Out of medication: refill is due now whatever adherence or history say
+        if supply.current_quantity <= 0:
+            days_remaining = 0.0
+
         # Apply safety buffer
         days_until_refill = max(0, days_remaining - self.buffer_days)
 

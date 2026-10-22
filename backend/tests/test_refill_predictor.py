@@ -32,6 +32,17 @@ def make_supply(**overrides):
 
 
 class TestPredictRefill:
+    @pytest.mark.parametrize("overrides", [
+        dict(adherence_rate=0.0),
+        dict(refill_history=[datetime.now() - timedelta(days=d) for d in (190, 100, 10)]),
+        dict(),
+    ])
+    def test_empty_supply_is_immediate(self, overrides):
+        supply = make_supply(current_quantity=0, **overrides)
+        pred = RefillPredictor(buffer_days=5).predict_refill(supply)
+        assert pred.urgency == RefillUrgency.IMMEDIATE
+        assert pred.days_until_refill == 0
+
     def test_basic_prediction(self):
         pred = RefillPredictor(buffer_days=5).predict_refill(make_supply())
         assert pred.medication_id == "med1"
