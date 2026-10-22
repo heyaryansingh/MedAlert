@@ -287,7 +287,7 @@ class HealthSummaryGenerator:
             )
 
             # Calculate trend
-            trend = self._calculate_trend(values)
+            trend = self._calculate_trend(values, VITAL_RANGES.get(vital_name))
 
             summaries.append(
                 VitalSummary(
@@ -384,7 +384,10 @@ class HealthSummaryGenerator:
         for alert_type, alerts in alert_groups.items():
             unresolved = sum(1 for a in alerts if not a.get("resolved", False))
             severities = [a.get("severity", "low") for a in alerts]
-            highest = max(severities, key=lambda s: severity_order.index(s))
+            highest = max(
+                severities,
+                key=lambda s: severity_order.index(s) if s in severity_order else 0,
+            )
 
             summaries.append(
                 AlertSummary(
@@ -417,11 +420,17 @@ class HealthSummaryGenerator:
         # Simulated - replace with actual DB query
         return []
 
-    def _calculate_trend(self, values: List[float]) -> TrendDirection:
+    def _calculate_trend(
+        self, values: List[float], normal_range: Optional[Dict[str, Any]] = None
+    ) -> TrendDirection:
         """Calculate trend direction from a series of values.
 
         Args:
             values: List of values in chronological order.
+            normal_range: Optional {"min", "max"} normal range. When given,
+                moving away from its midpoint is worsening in either
+                direction (e.g. falling oxygen saturation). Without it,
+                higher values are treated as worse.
 
         Returns:
             TrendDirection enum value.
@@ -438,6 +447,11 @@ class HealthSummaryGenerator:
 
         if abs(diff_pct) < 5:
             return TrendDirection.STABLE
+        if normal_range is not None:
+            mid = (normal_range["min"] + normal_range["max"]) / 2
+            if abs(last_avg - mid) > abs(first_avg - mid):
+                return TrendDirection.WORSENING
+            return TrendDirection.IMPROVING
         elif diff_pct > 0:
             return TrendDirection.WORSENING  # Higher values generally worse for vitals
         else:
