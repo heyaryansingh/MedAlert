@@ -92,3 +92,24 @@ class TestJWTSecretConfiguration:
             assert reloaded.decode_access_token(forged) is None
         finally:
             importlib.reload(auth_security)
+
+
+class TestCheckStoredPassword:
+    def test_bcrypt_hash_verifies(self):
+        assert auth_security.check_stored_password("pw", hash_password("pw"))
+
+    def test_2a_and_2y_hashes_are_not_treated_as_plaintext(self):
+        for prefix in ("$2a$", "$2y$"):
+            stored = prefix + hash_password("pw")[4:]
+            # Submitting the leaked hash itself must not log in
+            assert not auth_security.check_stored_password(stored, stored)
+            assert auth_security.is_password_hash(stored)
+
+    def test_legacy_plaintext_still_works(self):
+        assert auth_security.check_stored_password("old", "old")
+        assert not auth_security.check_stored_password("nope", "old")
+
+    def test_missing_or_malformed_stored_password_fails_closed(self):
+        assert not auth_security.check_stored_password("pw", None)
+        assert not auth_security.check_stored_password("pw", "")
+        assert not auth_security.check_stored_password("pw", "$2b$garbage")

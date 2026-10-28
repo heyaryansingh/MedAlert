@@ -92,6 +92,36 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
+BCRYPT_PREFIXES = ("$2a$", "$2b$", "$2y$")
+
+
+def is_password_hash(stored_password: object) -> bool:
+    """True if the stored value is a bcrypt hash (any of the $2a/$2b/$2y variants)."""
+    return isinstance(stored_password, str) and stored_password.startswith(BCRYPT_PREFIXES)
+
+
+def check_stored_password(plain_password: str, stored_password: object) -> bool:
+    """Verify a login against a stored bcrypt hash or a legacy plaintext password.
+
+    Every bcrypt variant goes through hash verification: treating a $2a$/$2y$
+    hash as plaintext would let anyone holding a leaked hash log in by
+    submitting the hash itself. Malformed hashes and missing/non-string
+    passwords fail closed instead of raising. The legacy plaintext comparison
+    is constant-time.
+    """
+    if not isinstance(stored_password, str) or not stored_password:
+        return False
+    if is_password_hash(stored_password):
+        try:
+            return verify_password(plain_password, stored_password)
+        except (ValueError, TypeError):
+            logger.warning("Stored password hash is malformed; rejecting login")
+            return False
+    return secrets.compare_digest(
+        plain_password.encode("utf-8"), stored_password.encode("utf-8")
+    )
+
+
 def create_access_token(
     data: Dict[str, str],
     expires_delta: Optional[timedelta] = None,

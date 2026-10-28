@@ -33,9 +33,10 @@ from typing import Optional
 from backend.models import Patient, Doctor, User
 from backend.dependencies import get_database
 from backend.utils.auth_security import (
-    verify_password,
+    check_stored_password,
     hash_password,
     create_access_token,
+    is_password_hash,
 )
 
 router = APIRouter()
@@ -60,19 +61,6 @@ class AuthResponse(BaseModel):
     token: str
 
 
-def _check_password(plain_password: str, stored_password: str) -> bool:
-    """Verify password supporting both bcrypt hashes and legacy plaintext.
-
-    If the stored password is a bcrypt hash (starts with $2b$), uses
-    secure hash verification. Otherwise falls back to plaintext comparison
-    for backward compatibility with existing accounts.
-    """
-    if stored_password.startswith("$2b$"):
-        return verify_password(plain_password, stored_password)
-    # Legacy plaintext comparison for unmigrated accounts
-    return plain_password == stored_password
-
-
 async def _upgrade_password_hash(
     collection, user_id, plain_password: str
 ) -> None:
@@ -93,7 +81,7 @@ async def patient_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(
     """Authenticate a patient user with bcrypt password verification and JWT."""
     patient = await db.patients.find_one({"email": request.email})
 
-    if not patient or not _check_password(request.password, patient["password"]):
+    if not patient or not check_stored_password(request.password, patient.get("password")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -101,7 +89,7 @@ async def patient_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(
         )
 
     # Auto-upgrade plaintext passwords to bcrypt on successful login
-    if not patient["password"].startswith("$2b$"):
+    if not is_password_hash(patient["password"]):
         await _upgrade_password_hash(db.patients, patient["_id"], request.password)
 
     token = create_access_token(
@@ -120,7 +108,7 @@ async def doctor_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(g
     """Authenticate a doctor user with bcrypt password verification and JWT."""
     doctor = await db.doctors.find_one({"email": request.email})
 
-    if not doctor or not _check_password(request.password, doctor["password"]):
+    if not doctor or not check_stored_password(request.password, doctor.get("password")):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -128,7 +116,7 @@ async def doctor_login(request: LoginRequest, db: AsyncIOMotorClient = Depends(g
         )
 
     # Auto-upgrade plaintext passwords to bcrypt on successful login
-    if not doctor["password"].startswith("$2b$"):
+    if not is_password_hash(doctor["password"]):
         await _upgrade_password_hash(db.doctors, doctor["_id"], request.password)
 
     token = create_access_token(
