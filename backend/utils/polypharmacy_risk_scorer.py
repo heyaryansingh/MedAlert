@@ -121,6 +121,13 @@ class PolypharmacyRiskScorer:
             anticholinergic burden score, flagged high-burden medications,
             an overall risk level, and plain-language recommendations.
         """
+        # One drug listed twice (two prescriptions, a refill entry) is still
+        # one medication: counting it twice doubled its burden and could push
+        # a two-drug regimen to SEVERE. Blank names are not medications.
+        unique_names = list(dict.fromkeys(
+            name for name in (self._normalize(med.generic_name) for med in medications) if name
+        ))
+        medications = [MedicationEntry(generic_name=name) for name in unique_names]
         medication_count = len(medications)
 
         # Report the same normalized name the lookup used. Reporting the raw

@@ -72,14 +72,14 @@ def test_the_same_drug_written_two_ways_is_reported_once(scorer):
 
 
 def test_ten_medications_reach_hyperpolypharmacy(scorer):
-    result = scorer.score(_meds(*["metformin"] * 10))
+    result = scorer.score(_meds(*[f"drug{i}" for i in range(10)]))
 
     assert result.risk_level is RiskLevel.SEVERE
     assert any("hyperpolypharmacy" in line for line in result.recommendations)
 
 
 def test_five_medications_reach_polypharmacy(scorer):
-    result = scorer.score(_meds(*["metformin"] * 5))
+    result = scorer.score(_meds(*[f"drug{i}" for i in range(5)]))
 
     assert result.risk_level is RiskLevel.HIGH
     assert any("polypharmacy" in line for line in result.recommendations)
@@ -106,3 +106,11 @@ def test_every_result_carries_the_disclaimer(scorer):
 
     assert "does not" in result.disclaimer
     assert "healthcare professional" in result.disclaimer
+
+
+def test_duplicate_entries_count_as_one_medication(scorer):
+    result = scorer.score(_meds("Diphenhydramine", "diphenhydramine ", "metformin", "  "))
+
+    assert result.medication_count == 2
+    assert result.anticholinergic_burden_score == 3
+    assert result.risk_level == RiskLevel.HIGH
