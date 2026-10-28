@@ -32,6 +32,7 @@ from backend.models import (
     Prescription, Appointment, ImageUpload, PyObjectId, ConversationSummary
 )
 from backend.dependencies import get_database
+from backend.utils.object_ids import parse_object_id
 from backend.ai.chatbot_logic import analyze_vitals_for_risk, analyze_image_for_wound, get_patient_risk_score # Import AI functions
 
 router = APIRouter()
@@ -75,7 +76,7 @@ async def get_patient_data(
     Returns comprehensive data for a specific patient, including vitals, symptom summaries,
     images, risk scores, chat history, notes, prescriptions, and appointments.
     """
-    patient_obj_id = PyObjectId(patient_id)
+    patient_obj_id = parse_object_id(patient_id, "patient_id")
     patient = await db.patients.find_one({"_id": patient_obj_id})
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
@@ -137,7 +138,7 @@ async def add_notes(
     """
     Allows a doctor to add notes for a specific patient.
     """
-    patient_obj_id = PyObjectId(request.patient_id)
+    patient_obj_id = parse_object_id(request.patient_id, "patient_id")
     note = DoctorNote(
         patient_id=patient_obj_id,
         doctor_id=doctor_id,
@@ -168,7 +169,7 @@ async def prescribe(
     """
     Allows a doctor to prescribe medication for a patient.
     """
-    patient_obj_id = PyObjectId(request.patient_id)
+    patient_obj_id = parse_object_id(request.patient_id, "patient_id")
     prescription = Prescription(
         patient_id=patient_obj_id,
         doctor_id=doctor_id,
@@ -200,7 +201,7 @@ async def schedule_appointment(
     """
     Allows a doctor to schedule an appointment for a patient.
     """
-    patient_obj_id = PyObjectId(request.patient_id)
+    patient_obj_id = parse_object_id(request.patient_id, "patient_id")
     appointment = Appointment(
         patient_id=patient_obj_id,
         doctor_id=doctor_id,
@@ -229,7 +230,7 @@ async def add_chat_comment(
     """
     Allows a doctor to add a comment to a specific chat message.
     """
-    chat_message_obj_id = PyObjectId(request.chat_message_id)
+    chat_message_obj_id = parse_object_id(request.chat_message_id, "chat_message_id")
     
     updated_message = await db.chat_messages.find_one_and_update(
         {"_id": chat_message_obj_id},
@@ -269,7 +270,7 @@ async def mark_alert_resolved(
     """
     Marks an alert as resolved by the doctor.
     """
-    alert_obj_id = PyObjectId(alert_id)
+    alert_obj_id = parse_object_id(alert_id, "alert_id")
     result = await db.alerts.update_one(
         {"_id": alert_obj_id, "doctor_id": doctor_id},
         {"$set": {"resolved": True}}

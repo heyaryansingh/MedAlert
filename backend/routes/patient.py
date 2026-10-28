@@ -40,6 +40,7 @@ from pydantic import BaseModel, Field
 
 from backend.models import Vital, ImageUpload, ChatMessage, Alert, PyObjectId, ConversationSummary, DoctorNote, Patient
 from backend.dependencies import get_database
+from backend.utils.object_ids import parse_object_id
 from backend.ai.chatbot_logic import get_chatbot_response, summarize_conversation_for_doctor # Placeholder for AI functions
 
 router = APIRouter()
@@ -238,7 +239,7 @@ async def generate_doctor_notes(
     Generates AI notes for the doctor based on the patient's chat history.
     This is called when the patient clicks "Checkup Done".
     """
-    patient_id = PyObjectId(request.patient_id)
+    patient_id = parse_object_id(request.patient_id, "patient_id")
     
     # Fetch all chat messages for the patient
     chat_history_cursor = db.chat_messages.find({"patient_id": patient_id}).sort("timestamp", 1)
