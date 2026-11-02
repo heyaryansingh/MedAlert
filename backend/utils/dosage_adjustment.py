@@ -27,6 +27,7 @@ Example:
     >>> print(rec.recommendation)
 """
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
@@ -166,6 +167,8 @@ def classify_renal_function(creatinine_clearance: float) -> RenalCategory:
     Returns:
         Renal function category.
     """
+    if math.isnan(creatinine_clearance) or creatinine_clearance < 0:
+        raise ValueError("creatinine_clearance must be a non-negative number")
     if creatinine_clearance >= 90:
         return RenalCategory.NORMAL
     elif creatinine_clearance >= 60:
@@ -311,6 +314,8 @@ def therapeutic_range_check(
     Returns:
         TherapeuticRangeResult with status and recommendation.
     """
+    if math.isnan(measured_level) or measured_level < 0:
+        raise ValueError("measured_level must be a non-negative number")
     drug_key = drug_name.lower().replace(" ", "_")
     range_info = THERAPEUTIC_RANGES.get(drug_key)
 

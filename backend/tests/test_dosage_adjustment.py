@@ -233,3 +233,11 @@ class TestSuggestAdjustment:
             creatinine_clearance=45.0,
         )
         assert rec.confidence == "high"
+
+
+def test_nan_inputs_rejected_not_treated_as_esrd_or_therapeutic():
+    nan = float("nan")
+    with pytest.raises(ValueError):
+        classify_renal_function(nan)
+    with pytest.raises(ValueError):
+        therapeutic_range_check("digoxin", nan)
