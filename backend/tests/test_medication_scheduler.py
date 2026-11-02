@@ -100,3 +100,13 @@ class TestTimeHelpers:
     def test_rejects_an_impossible_time(self):
         with pytest.raises(ValueError):
             parse_time("25:00")
+
+
+def test_every_n_hours_uses_fixed_interval():
+    from datetime import datetime
+    from utils.medication_scheduler import create_reminder_schedule, Medication, DoseFrequency
+    def times(f):
+        s = create_reminder_schedule([Medication("x", "1", f)], datetime(2026, 1, 1), days=1)
+        return [d.scheduled_time.strftime("%H:%M") for d in s]
+    assert times(DoseFrequency.EVERY_8_HOURS) == ["07:00", "15:00", "23:00"]
+    assert times(DoseFrequency.EVERY_12_HOURS) == ["07:00", "19:00"]

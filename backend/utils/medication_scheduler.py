@@ -213,6 +213,14 @@ def create_reminder_schedule(
 
         if med.specific_times:
             dose_times = med.specific_times
+        elif med.frequency in (DoseFrequency.EVERY_8_HOURS, DoseFrequency.EVERY_12_HOURS):
+            # Fixed interval from wake time, not spread over waking hours
+            step = 8 if med.frequency == DoseFrequency.EVERY_8_HOURS else 12
+            w = parse_time(wake_time)
+            dose_times = [
+                format_time(time((w.hour + step * i) % 24, w.minute))
+                for i in range(24 // step)
+            ]
         else:
             dose_times = calculate_dose_times(
                 freq, wake_time, sleep_time, med.meal_timing
