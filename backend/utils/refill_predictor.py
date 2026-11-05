@@ -267,6 +267,8 @@ class RefillPredictor:
         if len(refill_history) < 2:
             return 30.0  # Default to 30 days
 
+        # History may arrive unordered; out-of-order dates gave negative intervals
+        refill_history = sorted(refill_history)
         intervals = []
         for i in range(1, len(refill_history)):
             interval = (refill_history[i] - refill_history[i-1]).days
@@ -303,7 +305,7 @@ class RefillPredictor:
 
         # Reduce confidence for recent medication (< 60 days)
         if supply.refill_history:
-            days_since_start = (datetime.now() - supply.refill_history[0]).days
+            days_since_start = (datetime.now() - min(supply.refill_history)).days
         else:
             days_since_start = (datetime.now() - supply.last_refill_date).days
         if days_since_start < 60:
