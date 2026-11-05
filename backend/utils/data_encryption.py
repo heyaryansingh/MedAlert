@@ -106,8 +106,15 @@ class HealthDataEncryption:
         encrypted_data = data.copy()
 
         for field in fields:
-            if field in encrypted_data and encrypted_data[field]:
-                encrypted_data[field] = self.encrypt(str(encrypted_data[field]))
+            value = encrypted_data.get(field)
+            # Skip only missing/empty values: a lab result of 0 is still PHI.
+            if value is None or value == "":
+                continue
+            # Re-saving an already encrypted record must not wrap the token
+            # again, or decrypt_dict would hand back ciphertext as the value.
+            if _is_encrypted_token(value):
+                continue
+            encrypted_data[field] = self.encrypt(str(value))
 
         return encrypted_data
 

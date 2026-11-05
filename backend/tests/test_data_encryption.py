@@ -48,3 +48,13 @@ def test_password_key_is_reproducible_with_stored_salt():
 def test_password_key_requires_real_salt(salt):
     with pytest.raises(ValueError):
         HealthDataEncryption.generate_key_from_password("hunter2", salt)
+
+
+def test_encrypt_dict_is_idempotent_and_encrypts_zero():
+    enc = HealthDataEncryption()
+    once = enc.encrypt_dict({"diagnosis": "flu", "lab_results": 0}, ["diagnosis", "lab_results"])
+    assert once["lab_results"] != 0
+    twice = enc.encrypt_dict(once, ["diagnosis", "lab_results"])
+    assert twice == once
+    back = enc.decrypt_dict(twice, ["diagnosis", "lab_results"])
+    assert back == {"diagnosis": "flu", "lab_results": "0"}
