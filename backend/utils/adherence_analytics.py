@@ -70,6 +70,9 @@ def calculate_adherence_rate(
         >>> rate = calculate_adherence_rate(logs, target_doses=30)
         >>> print(f"Adherence: {rate:.1f}%")
     """
+    if target_doses is not None and target_doses < 0:
+        raise ValueError("target_doses must be >= 0")
+
     if not logs:
         return 0.0
 
