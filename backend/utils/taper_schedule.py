@@ -113,6 +113,13 @@ TAPER_REQUIRED_MEDICATIONS = {
 }
 
 
+def _check_days(days_per_step) -> None:
+    """Steps must last at least one whole day (0/negative gave empty or
+    backwards-dated schedules)."""
+    if isinstance(days_per_step, bool) or not isinstance(days_per_step, int) or days_per_step < 1:
+        raise ValueError("days_per_step must be a positive integer")
+
+
 def generate_linear_taper(
     starting_dose_mg: float,
     target_dose_mg: float = 0.0,
@@ -143,6 +150,7 @@ def generate_linear_taper(
         raise ValueError("Target dose cannot be negative")
     if step_reduction_mg <= 0:
         raise ValueError("Step reduction must be positive")
+    _check_days(days_per_step)
     if starting_dose_mg <= target_dose_mg:
         raise ValueError("Starting dose must exceed target dose")
 
@@ -223,6 +231,11 @@ def generate_percentage_taper(
     """
     if not 1 <= reduction_pct <= 50:
         raise ValueError("Reduction percentage must be between 1 and 50")
+    _check_days(days_per_step)
+    if target_dose_mg == 0 and not min_dose_mg > 0:
+        # Geometric decay never reaches 0; without a floor the loop ran
+        # until float underflow (thousands of steps).
+        raise ValueError("min_dose_mg must be positive when tapering to 0")
     if starting_dose_mg <= 0:
         raise ValueError("Starting dose must be positive")
     if target_dose_mg < 0:
@@ -296,6 +309,10 @@ def generate_custom_taper(
     """
     if not dose_steps:
         raise ValueError("dose_steps must not be empty")
+    for dose, days in dose_steps:
+        if not dose >= 0:
+            raise ValueError(f"Dose must be non-negative, got {dose}")
+        _check_days(days)
 
     steps = []
     current_date = start_date
@@ -349,6 +366,13 @@ def estimate_taper_duration(
     Returns:
         Estimated total days.
     """
+    if not 1 <= reduction_pct <= 50:
+        # 0% never reduced the dose and looped forever.
+        raise ValueError("Reduction percentage must be between 1 and 50")
+    _check_days(days_per_step)
+    if target_dose_mg <= 0 and not min_dose_mg > 0:
+        raise ValueError("min_dose_mg must be positive when tapering to 0")
+
     current = starting_dose_mg
     total_days = 0
     while current > target_dose_mg and current >= min_dose_mg:
