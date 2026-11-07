@@ -23,6 +23,7 @@ Example:
     >>> print(result.risk_level)  # "high"
 """
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Literal, Optional
@@ -129,15 +130,17 @@ def calculate_qtc(
         ValueError: If neither rr_interval_sec nor heart_rate_bpm is given,
             or if qt_ms / heart rate are non-positive.
     """
-    if qt_ms <= 0:
+    # `not x > 0` also rejects NaN, which slipped past `x <= 0` and produced
+    # a NaN QTc that downstream classified as NORMAL.
+    if not qt_ms > 0 or math.isinf(qt_ms):
         raise ValueError("qt_ms must be positive")
 
     if rr_interval_sec is None:
-        if heart_rate_bpm is None or heart_rate_bpm <= 0:
+        if heart_rate_bpm is None or not heart_rate_bpm > 0 or math.isinf(heart_rate_bpm):
             raise ValueError("Provide rr_interval_sec or a positive heart_rate_bpm")
         rr_interval_sec = 60.0 / heart_rate_bpm
 
-    if rr_interval_sec <= 0:
+    if not rr_interval_sec > 0 or math.isinf(rr_interval_sec):
         raise ValueError("rr_interval_sec must be positive")
 
     if formula == "bazett":
@@ -165,6 +168,10 @@ def classify_qtc_risk(qtc_ms: float, sex: Literal["male", "female"] = "male") ->
     Returns:
         QtcClassification for the given value.
     """
+    if not qtc_ms > 0 or math.isinf(qtc_ms):
+        # Fail closed: a NaN/negative QTc compared False against every
+        # threshold and was reported as NORMAL.
+        raise ValueError(f"qtc_ms must be a positive finite value, got {qtc_ms}")
     sex_key = sex if sex in _QTC_THRESHOLDS else "male"
     thresholds = _QTC_THRESHOLDS[sex_key]
 
