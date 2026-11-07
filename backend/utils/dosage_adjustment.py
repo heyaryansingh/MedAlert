@@ -216,6 +216,8 @@ def calculate_hepatic_adjustment(
     Returns:
         Dose adjustment factor (0.0-1.0).
     """
+    if not 5 <= child_pugh_score <= 15:
+        raise ValueError("child_pugh_score must be between 5 and 15")
     if child_pugh_score <= 6:
         return 1.0  # Class A - usually no adjustment
     elif child_pugh_score <= 9:
