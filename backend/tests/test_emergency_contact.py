@@ -31,3 +31,13 @@ def test_default_contact_list_does_not_crash():
     m = EmergencyContactManager()
     create_default_contact_list(m)
     assert len(m.get_all_contacts()) == 4
+
+
+def test_nan_vital_raises_instead_of_silently_skipping_alert():
+    import pytest
+    from backend.utils.emergency_contact import check_vital_thresholds_and_alert
+
+    m = EmergencyContactManager()
+    m.add_contact("Doc", "555-123-4567", priority=1)
+    with pytest.raises(ValueError):
+        check_vital_thresholds_and_alert(m, "heart_rate", float("nan"))

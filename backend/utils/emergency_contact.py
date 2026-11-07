@@ -17,6 +17,7 @@ Example:
     >>> manager.trigger_alert("critical", "Heart rate critically high: 180 bpm")
 """
 
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -393,6 +394,9 @@ def check_vital_thresholds_and_alert(
 
     if vital_type not in thresholds:
         return None
+    if not isinstance(value, (int, float)) or math.isnan(value):
+        # NaN fails every comparison and would silently skip the alert
+        raise ValueError(f"Invalid {vital_type} value: {value!r}")
 
     critical_low, warning_low, warning_high, critical_high = thresholds[vital_type]
     vital_name = vital_type.replace("_", " ").title()
