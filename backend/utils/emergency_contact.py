@@ -423,7 +423,7 @@ def create_default_contact_list(manager: EmergencyContactManager) -> None:
     """
     manager.add_contact(
         name="Primary Physician",
-        phone="555-DOCTOR",
+        phone="555-010-0001",
         email="doctor@example.com",
         relationship="Primary Care Physician",
         priority=1,
@@ -434,7 +434,7 @@ def create_default_contact_list(manager: EmergencyContactManager) -> None:
 
     manager.add_contact(
         name="Emergency Contact 1",
-        phone="555-FAMILY",
+        phone="555-010-0002",
         email="family@example.com",
         relationship="Spouse",
         priority=2,
@@ -444,7 +444,7 @@ def create_default_contact_list(manager: EmergencyContactManager) -> None:
 
     manager.add_contact(
         name="Emergency Contact 2",
-        phone="555-BACKUP",
+        phone="555-010-0003",
         relationship="Adult Child",
         priority=3,
         preferred_method=ContactMethod.PHONE_CALL,
@@ -453,7 +453,7 @@ def create_default_contact_list(manager: EmergencyContactManager) -> None:
 
     manager.add_contact(
         name="Specialist",
-        phone="555-CARDIO",
+        phone="555-010-0004",
         email="cardio@hospital.org",
         relationship="Cardiologist",
         priority=2,

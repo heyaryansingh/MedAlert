@@ -23,3 +23,11 @@ def test_full_oxygen_saturation_does_not_alert():
     m.add_contact("Doc", "555-123-4567", priority=1, is_medical_professional=True)
     assert check_vital_thresholds_and_alert(m, "oxygen_saturation", 100) is None
     assert check_vital_thresholds_and_alert(m, "oxygen_saturation", 84)
+
+
+def test_default_contact_list_does_not_crash():
+    from backend.utils.emergency_contact import create_default_contact_list
+
+    m = EmergencyContactManager()
+    create_default_contact_list(m)
+    assert len(m.get_all_contacts()) == 4
