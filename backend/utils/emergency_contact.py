@@ -255,12 +255,12 @@ class EmergencyContactManager:
 
         # For critical alerts, also include medical professionals
         if severity == AlertSeverity.CRITICAL:
-            medical = self.get_medical_professionals()
+            medical = [c for c in contacts if c.is_medical_professional]  # keeps priority order
             contacts = medical + [c for c in contacts if c not in medical]  # Dedupe, preserve order
 
         # Determine how many contacts to notify based on severity
         if severity == AlertSeverity.CRITICAL:
-            contacts_to_notify = contacts[:max_contacts]
+            contacts_to_notify = contacts[:max(0, max_contacts)]  # negative would slice from the end
         elif severity == AlertSeverity.URGENT:
             contacts_to_notify = contacts[:2]
         else:
