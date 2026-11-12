@@ -154,8 +154,13 @@ def calculate_reminder_times(
 
     reminder_times = []
     now = datetime.now(timezone.utc)
+    if appointment_time.tzinfo is None:
+        # naive appointment times are treated as UTC (comparing naive with aware raises TypeError)
+        now = now.replace(tzinfo=None)
 
     for hours_before in sorted(reminder_intervals, reverse=True):
+        if hours_before <= 0:
+            continue  # a reminder at/after the appointment start is meaningless
         reminder_time = appointment_time - timedelta(hours=hours_before)
         # Only include reminders that are in the future
         if reminder_time > now:
