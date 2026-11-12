@@ -260,6 +260,10 @@ def calculate_weight_based_dose(
     Returns:
         Calculated dose in milligrams.
     """
+    if not (dose_per_kg > 0 and weight_kg > 0 and math.isfinite(dose_per_kg * weight_kg)):
+        raise ValueError("dose_per_kg and weight_kg must be positive finite numbers")
+    if max_dose_mg is not None and not max_dose_mg > 0:
+        raise ValueError("max_dose_mg must be positive")
     dose = dose_per_kg * weight_kg
     if max_dose_mg is not None:
         dose = min(dose, max_dose_mg)
