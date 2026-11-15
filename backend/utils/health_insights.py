@@ -164,12 +164,23 @@ class HealthInsightsGenerator:
 
             # Trend insights
             if earlier_avg != 0 and abs(recent_avg - earlier_avg) > abs(earlier_avg) * 0.1:  # 10% change
-                if recent_avg > earlier_avg:
-                    trend_direction = "increasing"
-                    insight_type = InsightType.NEGATIVE_TREND if normal_range and recent_avg > normal_range[1] else InsightType.PATTERN_DETECTED
-                else:
-                    trend_direction = "decreasing"
-                    insight_type = InsightType.POSITIVE_TREND if normal_range and earlier_avg > normal_range[1] else InsightType.PATTERN_DETECTED
+                # Moving out of range on either side is negative; moving back
+                # from either side is positive. (Previously a fall below the
+                # minimum, e.g. dropping oxygen saturation or heart rate, and a
+                # recovery from a low reading were both just "patterns".)
+                trend_direction = "increasing" if recent_avg > earlier_avg else "decreasing"
+                insight_type = InsightType.PATTERN_DETECTED
+                if normal_range:
+                    lo, hi = normal_range
+                    if trend_direction == "increasing":
+                        if recent_avg > hi:
+                            insight_type = InsightType.NEGATIVE_TREND
+                        elif earlier_avg < lo:
+                            insight_type = InsightType.POSITIVE_TREND
+                    elif recent_avg < lo:
+                        insight_type = InsightType.NEGATIVE_TREND
+                    elif earlier_avg > hi:
+                        insight_type = InsightType.POSITIVE_TREND
 
                 change_pct = ((recent_avg - earlier_avg) / abs(earlier_avg)) * 100
 
