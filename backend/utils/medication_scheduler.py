@@ -192,6 +192,12 @@ def create_reminder_schedule(
         >>> meds = [Medication("Aspirin", "100mg", DoseFrequency.ONCE_DAILY)]
         >>> schedule = create_reminder_schedule(meds, datetime.now(), days=7)
     """
+    # A zero or negative span made end_date <= start_date, so the loop below
+    # never ran and the caller got an empty schedule - no reminders at all -
+    # with no indication that the input was wrong.
+    if days < 1:
+        raise ValueError("days must be at least 1")
+
     schedule: List[ScheduledDose] = []
 
     frequency_map = {
