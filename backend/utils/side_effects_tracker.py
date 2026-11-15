@@ -264,11 +264,15 @@ class SideEffectsTracker:
 
         # Check for multiple effects from same medication
         med_counts: Dict[str, int] = {}
+        med_labels: Dict[str, str] = {}
         for effect in patient_effects:
-            med_counts[effect.medication_name] = med_counts.get(effect.medication_name, 0) + 1
+            key = effect.medication_name.strip().lower()
+            med_labels.setdefault(key, effect.medication_name)
+            med_counts[key] = med_counts.get(key, 0) + 1
 
-        for med, count in med_counts.items():
+        for key, count in med_counts.items():
             if count >= 3:
+                med = med_labels[key]
                 alerts.append(
                     f"WARNING: {count} active side effects from {med}. "
                     "Consider alternative medication."
